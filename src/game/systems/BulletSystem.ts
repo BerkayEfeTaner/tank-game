@@ -14,6 +14,9 @@ export type FireOptions = {
   critical?: boolean
   bulletTint?: number
   baselineExplosiveRadius?: number
+  bulletScale?: number
+  bouncesLeft?: number
+  isOmega?: boolean
 }
 
 export type BulletHitContext = {
@@ -55,9 +58,12 @@ export class BulletSystem {
     const muzzleY = tank.y + Math.sin(angle) * 34 + Math.sin(angle + Math.PI / 2) * lateralOffset
     const bulletKey
       = fromPlayer ? 'bullet-player' : tank.enemyType === 'sniper' ? 'bullet-sniper' : 'bullet-enemy'
+    const scale = options.bulletScale ?? 1
+    const baseW = critical ? 10 : 8
+    const baseH = critical ? 22 : 18
     const sprite = this.scene.add
       .image(muzzleX, muzzleY, bulletKey)
-      .setDisplaySize(critical ? 10 : 8, critical ? 22 : 18)
+      .setDisplaySize(baseW * scale, baseH * scale)
       .setDepth(4)
     if (critical) {
       sprite.setTint(0xf6d365)
@@ -84,6 +90,8 @@ export class BulletSystem {
       piercesShield: tank.enemyType === 'sniper',
       piercesLeft: piercingLevel,
       explosiveRadius,
+      bouncesLeft: options.bouncesLeft ?? 0,
+      isOmega: options.isOmega ?? false,
     })
     spawnMuzzleFlash(this.scene, muzzleX, muzzleY, angle)
     if (playSound) {
@@ -98,7 +106,17 @@ export class BulletSystem {
       bullet.sprite.x += bullet.velocity.x * (delta / 1000)
       bullet.sprite.y += bullet.velocity.y * (delta / 1000)
 
-      if (this.shouldRemove(bullet, ctx.walls)) {
+      const removalReason = this.shouldRemoveReason(bullet, ctx.walls)
+      if (removalReason === 'out' || removalReason === 'age') {
+        this.removeAt(index)
+        continue
+      }
+      if (removalReason === 'wall') {
+        if ((bullet.bouncesLeft ?? 0) > 0) {
+          bullet.bouncesLeft = (bullet.bouncesLeft ?? 0) - 1
+          this.reflectOffWall(bullet, ctx.walls)
+          continue
+        }
         this.removeAt(index)
         continue
       }
@@ -133,13 +151,45 @@ export class BulletSystem {
     return this.bullets.length
   }
 
-  private shouldRemove(bullet: Bullet, walls: Phaser.GameObjects.Rectangle[]) {
-    const outOfBounds
-      = bullet.sprite.x < 0
+  private shouldRemoveReason(
+    bullet: Bullet,
+    walls: Phaser.GameObjects.Rectangle[],
+  ): 'out' | 'age' | 'wall' | null {
+    if (
+      bullet.sprite.x < 0
       || bullet.sprite.x > GAME_CONFIG.width
       || bullet.sprite.y < 0
       || bullet.sprite.y > GAME_CONFIG.height
-    return outOfBounds || bullet.age > GAME_CONFIG.bulletLife || hitsWall(bullet.sprite, walls)
+    ) {
+      return 'out'
+    }
+    if (bullet.age > GAME_CONFIG.bulletLife) {
+      return 'age'
+    }
+    if (hitsWall(bullet.sprite, walls)) {
+      return 'wall'
+    }
+    return null
+  }
+
+  private reflectOffWall(bullet: Bullet, walls: Phaser.GameObjects.Rectangle[]) {
+    const bounds = bullet.sprite.getBounds()
+    const wall = walls.find((w) => boundsOverlap(bounds, w.getBounds()))
+    if (!wall) {
+      bullet.velocity.x *= -1
+      bullet.velocity.y *= -1
+      return
+    }
+    const wb = wall.getBounds()
+    const flipX = wb.height >= wb.width
+    if (flipX) {
+      bullet.velocity.x *= -1
+    } else {
+      bullet.velocity.y *= -1
+    }
+    bullet.sprite.x += bullet.velocity.x * 0.02
+    bullet.sprite.y += bullet.velocity.y * 0.02
+    bullet.sprite.rotation = Math.atan2(bullet.velocity.y, bullet.velocity.x) + TANK_SPRITE_ROTATION_OFFSET
   }
 
   private removeAt(index: number) {

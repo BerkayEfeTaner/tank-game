@@ -151,21 +151,42 @@ export const POWER_UP_LABELS: Record<PowerUpType, string> = {
 }
 
 export const UPGRADE_OPTIONS: UpgradeOption[] = [
+  // common — basic frontline tweaks
   { type: 'armor', title: 'Reinforced Armor', description: '+1 max armor and repair 1', rarity: 'common' },
   { type: 'damage', title: 'Heavy Shells', description: '+1 damage per shell', rarity: 'common' },
   { type: 'fireRate', title: 'Fast Loader', description: 'Fire rate improves', rarity: 'common' },
   { type: 'moveSpeed', title: 'Tuned Engine', description: 'Move speed improves', rarity: 'common' },
   { type: 'bulletSpeed', title: 'High Velocity', description: 'Bullets travel faster', rarity: 'common' },
-  { type: 'critChance', title: 'Targeting Optics', description: 'Critical chance improves', rarity: 'rare' },
-  { type: 'critDamage', title: 'Weak Point Rounds', description: 'Critical hits hurt more', rarity: 'rare' },
-  { type: 'xpBoost', title: 'Field Training', description: 'Gain more XP from kills', rarity: 'rare' },
   { type: 'pickupRadius', title: 'Signal Magnet', description: 'Collect XP and gold from farther away', rarity: 'common' },
+  { type: 'healPack', title: 'Field Med Pack', description: 'Instantly restore 3 armor', rarity: 'common' },
+
+  // uncommon — quality of life buffs
+  { type: 'xpBoost', title: 'Field Training', description: 'Gain more XP from kills', rarity: 'uncommon' },
+  { type: 'critChance', title: 'Targeting Optics', description: 'Critical chance improves', rarity: 'uncommon' },
+  { type: 'scoreBonus', title: 'Combat Streak', description: 'Permanent score bonus', rarity: 'uncommon' },
+  { type: 'bulletGirth', title: 'Battalion Caliber', description: 'Bigger shells, +5% damage per stack', rarity: 'uncommon' },
+  { type: 'shieldBoost', title: 'Shield Booster', description: '+1 max armor and full repair', rarity: 'uncommon' },
+
+  // rare — tactical edge
+  { type: 'critDamage', title: 'Weak Point Rounds', description: 'Critical hits hurt more', rarity: 'rare' },
   { type: 'piercingShell', title: 'Piercing Shells', description: 'Shells pass through extra targets', rarity: 'rare' },
-  { type: 'explosiveShell', title: 'Explosive Rounds', description: 'Shells splash nearby enemies', rarity: 'epic' },
   { type: 'bossDamage', title: 'Commander Breaker', description: 'Deal bonus damage to boss tanks', rarity: 'rare' },
-  { type: 'scoreBonus', title: 'Combat Streak', description: 'Rare permanent score bonus', rarity: 'rare' },
+  { type: 'vampireBite', title: 'Vampire Bite', description: 'Heal 1 HP every 6 kills', rarity: 'rare' },
+  { type: 'goldRush', title: 'Gold Rush', description: '+60% gold drops for 60 seconds', rarity: 'rare' },
+
+  // epic — game-shaping
+  { type: 'explosiveShell', title: 'Explosive Rounds', description: 'Shells splash nearby enemies', rarity: 'epic' },
   { type: 'doubleShot', title: 'Twin Cannons', description: 'Fire an extra parallel shell', rarity: 'epic' },
-  { type: 'tripleShot', title: 'Scatter Barrel', description: 'Fire forward and diagonal shells', rarity: 'epic' },
+  { type: 'ricochet', title: 'Ricochet Plating', description: 'Shells bounce off walls once', rarity: 'epic' },
+  { type: 'adrenalineRush', title: 'Adrenaline Rush', description: 'Free 5s overdrive after each wave', rarity: 'epic' },
+
+  // legendary — rare power spikes
+  { type: 'tripleShot', title: 'Scatter Barrel', description: 'Fire forward and diagonal shells', rarity: 'legendary' },
+  { type: 'berserker', title: 'Berserker Reactor', description: '+35% damage when below 30% HP', rarity: 'legendary' },
+  { type: 'phaseShift', title: 'Phase Shift Field', description: '0.7s invulnerability after a hit', rarity: 'legendary' },
+
+  // mythic — game-altering
+  { type: 'omegaShell', title: 'Omega Shell', description: 'Every 10th shot is a mega-blast', rarity: 'mythic' },
 ]
 
 export const WAVES = [

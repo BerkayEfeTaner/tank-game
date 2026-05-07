@@ -117,17 +117,36 @@ const SPAWN_OFFSETS = [
   [112, 0],
 ] as const
 
+const FALLBACK_OFFSETS = [
+  [-220, 0],
+  [220, 0],
+  [0, -220],
+  [0, 220],
+  [-260, -180],
+  [260, -180],
+  [-260, 180],
+  [260, 180],
+] as const
+
+const MIN_PLAYER_SPAWN_DISTANCE = 220
+
 export function spawnIsClear(
   x: number,
   y: number,
   size: number,
   walls: Phaser.GameObjects.Rectangle[],
   player?: Tank,
+  minPlayerDistance = MIN_PLAYER_SPAWN_DISTANCE,
 ) {
   const bounds = squareBounds(x, y, size)
   const wallHit = walls.some((wall) => boundsOverlap(bounds, wall.getBounds()))
-  const playerHit = player ? boundsOverlap(bounds, tankBounds(player)) : false
-  return !wallHit && !playerHit
+  if (wallHit) return false
+  if (!player) return true
+  if (boundsOverlap(bounds, tankBounds(player))) return false
+  const dx = x - player.x
+  const dy = y - player.y
+  const distSq = dx * dx + dy * dy
+  return distSq >= minPlayerDistance * minPlayerDistance
 }
 
 export function findClearSpawn(
@@ -141,6 +160,14 @@ export function findClearSpawn(
     const candidate = clampTankPosition(x + offsetX, y + offsetY, size)
     if (spawnIsClear(candidate.x, candidate.y, size, walls, player)) {
       return candidate
+    }
+  }
+  if (player) {
+    for (const [offsetX, offsetY] of FALLBACK_OFFSETS) {
+      const candidate = clampTankPosition(player.x + offsetX, player.y + offsetY, size)
+      if (spawnIsClear(candidate.x, candidate.y, size, walls, player)) {
+        return candidate
+      }
     }
   }
   return clampTankPosition(x, y, size)

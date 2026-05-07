@@ -5,7 +5,7 @@ export type TankKind = 'player' | 'enemy'
 export type EnemyType = 'scout' | 'heavy' | 'sniper' | 'charger' | 'bomber' | 'shield' | 'boss'
 export type BossStyle = 'vanguard' | 'artillery' | 'swarm' | 'warden' | 'blitz'
 export type PowerUpType = 'nuke' | 'magnet' | 'freeze' | 'doubleGold' | 'doubleXp' | 'repair' | 'overdrive'
-export type UpgradeRarity = 'common' | 'rare' | 'epic'
+export type UpgradeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic'
 export type UpgradeType =
   | 'armor'
   | 'damage'
@@ -22,6 +22,16 @@ export type UpgradeType =
   | 'explosiveShell'
   | 'pickupRadius'
   | 'bossDamage'
+  | 'bulletGirth'
+  | 'vampireBite'
+  | 'ricochet'
+  | 'adrenalineRush'
+  | 'berserker'
+  | 'phaseShift'
+  | 'omegaShell'
+  | 'healPack'
+  | 'shieldBoost'
+  | 'goldRush'
 export type StatUpgradeType =
   | 'maxHealth'
   | 'damage'
@@ -74,6 +84,8 @@ export type Bullet = {
   piercesShield?: boolean
   piercesLeft?: number
   explosiveRadius?: number
+  bouncesLeft?: number
+  isOmega?: boolean
 }
 
 export type PowerUp = {
@@ -108,6 +120,11 @@ export type PlayerBuffs = {
   doubleShot: number
   tripleShot: number
   xpBonus: number
+  invulnerableUntil: number
+  goldRushUntil: number
+  killStreak: number
+  vampireProgress: number
+  shellCounter: number
 }
 
 export type UpgradeOption = {

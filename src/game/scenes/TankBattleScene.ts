@@ -184,6 +184,16 @@ export class TankBattleScene extends Phaser.Scene {
       explosiveShell: 0,
       pickupRadius: 0,
       bossDamage: 0,
+      bulletGirth: 0,
+      vampireBite: 0,
+      ricochet: 0,
+      adrenalineRush: 0,
+      berserker: 0,
+      phaseShift: 0,
+      omegaShell: 0,
+      healPack: 0,
+      shieldBoost: 0,
+      goldRush: 0,
     }
   }
 
@@ -197,6 +207,11 @@ export class TankBattleScene extends Phaser.Scene {
       doubleShot: 0,
       tripleShot: 0,
       xpBonus: 0,
+      invulnerableUntil: 0,
+      goldRushUntil: 0,
+      killStreak: 0,
+      vampireProgress: 0,
+      shellCounter: 0,
     }
   }
 
@@ -947,6 +962,20 @@ export class TankBattleScene extends Phaser.Scene {
 
     const classCritBonus = this.activeClass().ability.critChanceBonus ?? 0
     const classExplosive = this.activeClass().ability.forceExplosiveRadius ?? 0
+    const girthLevel = this.upgradeLevel('bulletGirth')
+    const girthScale = 1 + girthLevel * 0.18
+    const girthBonus = 1 + girthLevel * 0.05
+    const ricochetCount = this.upgradeLevel('ricochet') > 0 ? 1 : 0
+    const berserkerActive
+      = this.upgradeLevel('berserker') > 0
+      && this.player.health > 0
+      && this.player.health / Math.max(1, this.player.maxHealth) <= 0.3
+    const berserkerBonus = berserkerActive ? 1.35 : 1
+    const omegaActive = this.upgradeLevel('omegaShell') > 0
+    if (omegaActive) {
+      this.buffs.shellCounter += 1
+    }
+    const isOmega = omegaActive && this.buffs.shellCounter % 10 === 0
     angles.forEach((angle) => {
       offsets.forEach((offset, offsetIndex) => {
         const roll = rollPlayerDamage(
@@ -957,13 +986,20 @@ export class TankBattleScene extends Phaser.Scene {
           this.time.now,
           classCritBonus,
         )
+        const baseDamage = Math.max(1, Math.round(roll.damage * girthBonus * berserkerBonus))
+        const finalDamage = isOmega ? baseDamage * 3 : baseDamage
+        const explosiveRadius = isOmega ? Math.max(72, classExplosive) : classExplosive
         this.bulletSystem.fire(this.player, true, time, {
           angleOverride: angle,
           lateralOffset: offset,
           playSound: angle === angles[0] && offsetIndex === 0,
-          damageOverride: roll.damage,
+          damageOverride: finalDamage,
           critical: roll.critical,
-          baselineExplosiveRadius: classExplosive,
+          baselineExplosiveRadius: explosiveRadius,
+          bulletScale: isOmega ? 1.8 : girthScale,
+          bulletTint: isOmega ? 0xff5d5d : undefined,
+          bouncesLeft: ricochetCount,
+          isOmega,
         })
       })
     })
@@ -1035,8 +1071,22 @@ export class TankBattleScene extends Phaser.Scene {
     this.multiplier = Math.min(this.multiplier + 1, 9)
     this.audio.explosion()
 
+    this.handleVampireKill()
+
     if (this.enemies.length === 0 && this.waveSpawnQueue.length === 0 && this.state === 'playing') {
       this.finishWave()
+    }
+  }
+
+  private handleVampireKill() {
+    if (this.upgradeLevel('vampireBite') <= 0) return
+    this.buffs.vampireProgress += 1
+    if (this.buffs.vampireProgress >= 6) {
+      this.buffs.vampireProgress = 0
+      if (this.player && this.player.health < this.player.maxHealth) {
+        this.player.health += 1
+        spawnFloatingText(this, this.player.x, this.player.y - 30, '+1 HP', 0xff8a8a)
+      }
     }
   }
 
@@ -1066,6 +1116,9 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private damagePlayer(damage: number, _piercesShield: boolean, _time: number) {
+    if (this.buffs.invulnerableUntil > this.time.now) {
+      return
+    }
     const classMult = this.activeClass().ability.damageTakenMultiplier ?? 1
     const finalDamage = Math.max(1, Math.round(damage * classMult))
     this.player.health -= finalDamage
@@ -1074,6 +1127,11 @@ export class TankBattleScene extends Phaser.Scene {
     spawnHitSpark(this, this.player.x, this.player.y)
     this.cameras.main.shake(90, 0.006)
     this.audio.hit()
+
+    if (this.upgradeLevel('phaseShift') > 0 && this.player.health > 0) {
+      this.buffs.invulnerableUntil = this.time.now + 700
+      flashTank(this, this.player, 0x9ee2ff)
+    }
 
     if (this.player.health <= 0) {
       this.endMatch('lost')
@@ -1132,7 +1190,8 @@ export class TankBattleScene extends Phaser.Scene {
       spawnFloatingText(this, pickup.sprite.x, pickup.sprite.y - 12, `+${pickup.value} XP`, GAME_CONFIG.colors.xp)
     } else {
       const goldMult = this.activeClass().ability.goldMultiplier ?? 1
-      const earned = Math.max(1, Math.round(pickup.value * goldMult))
+      const goldRushMult = this.buffs.goldRushUntil > this.time.now ? 1.6 : 1
+      const earned = Math.max(1, Math.round(pickup.value * goldMult * goldRushMult))
       this.gold += earned
       saveGold(this.gold)
       spawnFloatingText(this, pickup.sprite.x, pickup.sprite.y - 12, `+${earned}g`, 0xf6d365)
@@ -1148,6 +1207,12 @@ export class TankBattleScene extends Phaser.Scene {
 
   private finishWave() {
     this.applyArmorRegen()
+    if (this.upgradeLevel('adrenalineRush') > 0) {
+      this.buffs.overdriveUntil = Math.max(this.buffs.overdriveUntil, this.time.now + 5_000)
+      if (this.player) {
+        spawnFloatingText(this, this.player.x, this.player.y - 36, 'ADRENALINE', 0xff9f43)
+      }
+    }
     this.waveIndex += 1
     this.recordWavePeak(this.waveIndex)
     this.showUpgradeOptions('wave')
@@ -1268,6 +1333,21 @@ export class TankBattleScene extends Phaser.Scene {
     if (choice.type === 'xpBoost') {
       this.buffs.xpBonus += 1
     }
+    if (choice.type === 'healPack') {
+      this.player.health = Math.min(this.player.health + 3, this.player.maxHealth)
+    }
+    if (choice.type === 'shieldBoost') {
+      this.player.maxHealth += 1
+      this.player.health = this.player.maxHealth
+    }
+    if (choice.type === 'goldRush') {
+      this.buffs.goldRushUntil = this.time.now + 60_000
+    }
+    if (choice.type === 'adrenalineRush') {
+      this.buffs.overdriveUntil = Math.max(this.buffs.overdriveUntil, this.time.now + 5_000)
+    }
+    // bulletGirth, vampireBite, ricochet, berserker, phaseShift, omegaShell — passive stacks
+    // tracked via this.upgradeLevel(type) at the relevant action sites
 
     this.continueAfterUpgrade()
   }

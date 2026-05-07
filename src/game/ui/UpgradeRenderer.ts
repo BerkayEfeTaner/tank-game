@@ -2,7 +2,13 @@ import Phaser from 'phaser'
 import { GAME_CONFIG, UPGRADE_OPTIONS } from '../config'
 import { TANK_SPRITE_ROTATION_OFFSET } from '../constants'
 import type { UpgradeOption, UpgradeType } from '../types'
-import { UPGRADE_CAPS, rarityColor, upgradeCategory, upgradeImpact } from '../upgrade-meta'
+import {
+  RARITY_WEIGHTS,
+  UPGRADE_CAPS,
+  rarityColor,
+  upgradeCategory,
+  upgradeImpact,
+} from '../upgrade-meta'
 
 export type UpgradeReason = 'wave' | 'level'
 
@@ -294,19 +300,28 @@ export class UpgradeRenderer {
 }
 
 function pickChoices(upgradeLevels: Record<UpgradeType, number>): UpgradeOption[] {
-  const scoreAllowed = Math.random() < 0.18
   const pool = UPGRADE_OPTIONS.filter((option) => {
     const cap = UPGRADE_CAPS[option.type]
-    if ((upgradeLevels[option.type] ?? 0) >= cap) {
-      return false
-    }
-    if (option.type === 'scoreBonus' && !scoreAllowed) {
-      return false
-    }
-    return true
+    return (upgradeLevels[option.type] ?? 0) < cap
   })
-  const shuffled = Phaser.Utils.Array.Shuffle([...pool])
-  return shuffled.slice(0, 3)
+
+  const result: UpgradeOption[] = []
+  const remaining = [...pool]
+  for (let pick = 0; pick < 3 && remaining.length > 0; pick += 1) {
+    const totalWeight = remaining.reduce((sum, option) => sum + RARITY_WEIGHTS[option.rarity], 0)
+    let roll = Math.random() * totalWeight
+    let chosenIndex = 0
+    for (let index = 0; index < remaining.length; index += 1) {
+      roll -= RARITY_WEIGHTS[remaining[index].rarity]
+      if (roll <= 0) {
+        chosenIndex = index
+        break
+      }
+    }
+    result.push(remaining[chosenIndex])
+    remaining.splice(chosenIndex, 1)
+  }
+  return result
 }
 
 function drawIcon(

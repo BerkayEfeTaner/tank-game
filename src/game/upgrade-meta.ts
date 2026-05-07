@@ -16,6 +16,16 @@ export const UPGRADE_CAPS: Record<UpgradeType, number> = {
   explosiveShell: 3,
   pickupRadius: 5,
   bossDamage: 5,
+  bulletGirth: 4,
+  vampireBite: 1,
+  ricochet: 1,
+  adrenalineRush: 1,
+  berserker: 1,
+  phaseShift: 1,
+  omegaShell: 1,
+  healPack: 5,
+  shieldBoost: 3,
+  goldRush: 3,
 }
 
 export const HUD_UPGRADE_LABELS: Array<[UpgradeType, string]> = [
@@ -34,19 +44,53 @@ export const HUD_UPGRADE_LABELS: Array<[UpgradeType, string]> = [
   ['explosiveShell', 'BLAST'],
   ['bossDamage', 'BOSS'],
   ['scoreBonus', 'SCORE'],
+  ['bulletGirth', 'GIRTH'],
+  ['vampireBite', 'VAMP'],
+  ['ricochet', 'BOUNCE'],
+  ['adrenalineRush', 'ADREN'],
+  ['berserker', 'BSRK'],
+  ['phaseShift', 'PHASE'],
+  ['omegaShell', 'OMEGA'],
+]
+
+export const RARITY_WEIGHTS: Record<UpgradeRarity, number> = {
+  common: 40,
+  uncommon: 25,
+  rare: 16,
+  epic: 10,
+  legendary: 6,
+  mythic: 3,
+}
+
+export const RARITY_ORDER: UpgradeRarity[] = [
+  'common',
+  'uncommon',
+  'rare',
+  'epic',
+  'legendary',
+  'mythic',
 ]
 
 export function rarityColor(rarity: UpgradeRarity): number {
+  if (rarity === 'mythic') return 0xff5d5d
+  if (rarity === 'legendary') return 0xf6d365
   if (rarity === 'epic') return 0xb48cff
-  if (rarity === 'rare') return 0xf6d365
-  return 0x7fb08f
+  if (rarity === 'rare') return 0x6fb3ff
+  if (rarity === 'uncommon') return 0x6fdf7d
+  return 0xe6e8eb
+}
+
+export function rarityLabel(rarity: UpgradeRarity): string {
+  return rarity.toUpperCase()
 }
 
 export function upgradeCategory(type: UpgradeType): string {
-  if (type === 'armor') return 'DEFENSE'
+  if (type === 'armor' || type === 'shieldBoost' || type === 'phaseShift') return 'DEFENSE'
   if (type === 'moveSpeed') return 'MOBILITY'
-  if (type === 'scoreBonus') return 'ECONOMY'
+  if (type === 'scoreBonus' || type === 'goldRush') return 'ECONOMY'
   if (type === 'xpBoost') return 'TRAINING'
+  if (type === 'healPack' || type === 'vampireBite') return 'MEDIC'
+  if (type === 'pickupRadius') return 'SUPPORT'
   return 'WEAPON'
 }
 
@@ -66,5 +110,15 @@ export function upgradeImpact(type: UpgradeType): string {
   if (type === 'explosiveShell') return '+SPLASH'
   if (type === 'pickupRadius') return '+MAGNET'
   if (type === 'bossDamage') return '+BOSS DMG'
+  if (type === 'bulletGirth') return '+GIRTH'
+  if (type === 'vampireBite') return 'VAMPIRIC'
+  if (type === 'ricochet') return 'BOUNCE'
+  if (type === 'adrenalineRush') return 'WAVE BUFF'
+  if (type === 'berserker') return 'LOW HP'
+  if (type === 'phaseShift') return 'INVULN'
+  if (type === 'omegaShell') return 'MEGA'
+  if (type === 'healPack') return '+3 HP'
+  if (type === 'shieldBoost') return '+1 MAX'
+  if (type === 'goldRush') return '+60% GOLD'
   return '+POWER'
 }
