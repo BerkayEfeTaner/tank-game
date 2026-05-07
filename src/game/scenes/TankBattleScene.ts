@@ -420,8 +420,7 @@ export class TankBattleScene extends Phaser.Scene {
       if (safe.x !== this.player.x || safe.y !== this.player.y) {
         this.player.x = safe.x
         this.player.y = safe.y
-        this.player.hull.setPosition(safe.x, safe.y)
-        this.player.turret.setPosition(safe.x, safe.y)
+        syncTankVisuals(this.player)
       }
     }
   }
@@ -670,6 +669,12 @@ export class TankBattleScene extends Phaser.Scene {
       bodyAssetOverride: cls.bodyAsset,
       barrelAssetOverride: cls.barrelAsset,
     })
+    const spawnSafe = findClearPosition(this.player.x, this.player.y, this.player.size, this.walls)
+    if (spawnSafe.x !== this.player.x || spawnSafe.y !== this.player.y) {
+      this.player.x = spawnSafe.x
+      this.player.y = spawnSafe.y
+      syncTankVisuals(this.player)
+    }
     this.startWave()
   }
 
