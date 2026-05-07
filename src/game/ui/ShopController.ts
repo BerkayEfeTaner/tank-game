@@ -22,7 +22,7 @@ export class ShopController {
   private activeTab: StoreTab = 'stats'
   private readonly handleSnapshot = (snapshot: ShopSnapshot) => {
     this.snapshot = snapshot
-    this.render()
+    if (this.isOpen()) this.render()
   }
 
   constructor(bus: GameEventBus) {
@@ -74,7 +74,7 @@ export class ShopController {
     this.toggle.setAttribute('aria-expanded', String(open))
     if (open && !wasOpen) this.bus.emit('shop:open')
     else if (!open && wasOpen) this.bus.emit('shop:close')
-    this.render()
+    if (open) this.render()
   }
 
   private handleBodyClick(event: MouseEvent) {
@@ -118,7 +118,7 @@ export class ShopController {
       this.body!.appendChild(createCardButton({
         action: 'stat-buy', id: type,
         name: config.title,
-        description: `${config.description} · Lv ${level}`,
+        description: `${config.description} - Lv ${level}`,
         priceLabel: `${cost}g`, stateLabel: `Lv ${level}`,
         iconUrl: config.iconUrl, disabled: !canAfford,
         states: { affordable: canAfford, expensive: !canAfford, poor: !canAfford },
@@ -138,8 +138,8 @@ export class ShopController {
       const canAfford = gold >= cls.unlock.goldCost
       const meta = computeClassCardMeta({ cls, owned, isActive, waveLocked, canAfford })
       const description = waveLocked
-        ? `Reach wave ${cls.unlock.waveMilestone} or buy · ${cls.tagline}`
-        : `${cls.tagline} · ${cls.description}`
+        ? `Reach wave ${cls.unlock.waveMilestone} or buy - ${cls.tagline}`
+        : `${cls.tagline} - ${cls.description}`
       this.body!.appendChild(createCardButton({
         action: meta.action, id: classId,
         name: cls.name, description,
@@ -234,7 +234,7 @@ function createCardButton(options: CreateCardOptions): HTMLButtonElement {
   nameEl.textContent = options.name
   const price = document.createElement('div')
   price.className = 'store-card__price'
-  if (options.priceLabel === '—' || options.priceLabel === 'Free') price.classList.add('is-free')
+  if (options.priceLabel === '-' || options.priceLabel === 'Free') price.classList.add('is-free')
   price.textContent = options.priceLabel
 
   const info = document.createElement('div')
@@ -269,11 +269,11 @@ type ClassCardMetaInput = {
 
 function computeClassCardMeta(input: ClassCardMetaInput) {
   if (input.isActive) return {
-    action: 'class-noop', priceLabel: '—', stateLabel: 'Active',
+    action: 'class-noop', priceLabel: '-', stateLabel: 'Active',
     disabled: true, states: { active: true } as CardStateFlags,
   }
   if (input.owned) return {
-    action: 'class-select', priceLabel: '—', stateLabel: 'Equip',
+    action: 'class-select', priceLabel: '-', stateLabel: 'Equip',
     disabled: false, states: { affordable: true } as CardStateFlags,
   }
   if (input.waveLocked && !input.canAfford) return {
@@ -295,13 +295,13 @@ type SkinCardMetaInput = { skin: TankSkin; owned: boolean; isActive: boolean; ca
 function computeSkinCardMeta(input: SkinCardMetaInput) {
   if (input.isActive) return {
     action: 'skin-noop',
-    priceLabel: input.skin.goldCost > 0 ? `${input.skin.goldCost}g` : '—',
+    priceLabel: input.skin.goldCost > 0 ? `${input.skin.goldCost}g` : '-',
     stateLabel: 'Equipped', disabled: true,
     states: { active: true } as CardStateFlags,
   }
   if (input.owned) return {
     action: 'skin-select',
-    priceLabel: input.skin.goldCost > 0 ? `${input.skin.goldCost}g` : '—',
+    priceLabel: input.skin.goldCost > 0 ? `${input.skin.goldCost}g` : '-',
     stateLabel: 'Apply', disabled: false,
     states: { affordable: true } as CardStateFlags,
   }

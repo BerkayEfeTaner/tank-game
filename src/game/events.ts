@@ -36,6 +36,16 @@ export type ShopSnapshot = {
   peakWave: number
 }
 
+export type MenuSnapshot = {
+  gold: number
+  highScore: number
+  peakWave: number
+  activeClassName: string
+  activeClassTagline: string
+  activeClassIconUrl: string
+  activeSkinName: string
+}
+
 export type SkinSelection = {
   classId: TankClassId
   skinId: SkinId
@@ -44,6 +54,8 @@ export type SkinSelection = {
 export type GameEventMap = {
   'hud:snapshot': HudSnapshot
   'shop:snapshot': ShopSnapshot
+  'menu:snapshot': MenuSnapshot
+  'menu:start': void
   'shop:open': void
   'shop:close': void
   'shop:purchase': StatUpgradeType

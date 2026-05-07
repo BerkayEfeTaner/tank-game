@@ -78,6 +78,7 @@ import type {
   WaveConfig,
 } from '../types'
 import { HudController } from '../ui/HudController'
+import { MainMenuController } from '../ui/MainMenuController'
 import { ScreenPanelRenderer } from '../ui/ScreenPanelRenderer'
 import { ShopController } from '../ui/ShopController'
 import { UpgradeRenderer } from '../ui/UpgradeRenderer'
@@ -135,6 +136,7 @@ export class TankBattleScene extends Phaser.Scene {
   private screenPanel!: ScreenPanelRenderer
   private bus = new GameEventBus()
   private hudController?: HudController
+  private mainMenuController?: MainMenuController
   private shopController?: ShopController
   private banner!: Phaser.GameObjects.Text
   private helper!: Phaser.GameObjects.Text
@@ -453,6 +455,7 @@ export class TankBattleScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(50)
 
     this.hudController = new HudController(this.bus)
+    this.mainMenuController = new MainMenuController(this.bus)
     this.shopController = new ShopController(this.bus)
     this.wireBus()
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown())
@@ -477,6 +480,11 @@ export class TankBattleScene extends Phaser.Scene {
     this.bus.on('class:select', (id) => this.selectClass(id))
     this.bus.on('skin:purchase', (sel) => this.buySkin(sel.classId, sel.skinId))
     this.bus.on('skin:select', (sel) => this.selectSkin(sel.classId, sel.skinId))
+    this.bus.on('menu:start', () => {
+      if (this.state === 'menu') {
+        this.startGame()
+      }
+    })
   }
 
   private buyClass(id: TankClassId) {
@@ -496,6 +504,7 @@ export class TankBattleScene extends Phaser.Scene {
       spawnFloatingText(this, this.player.x, this.player.y - 36, `${cls.name} unlocked`, 0xf6d365)
     }
     this.publishHud()
+    this.publishMenu()
   }
 
   private selectClass(id: TankClassId) {
@@ -506,6 +515,7 @@ export class TankBattleScene extends Phaser.Scene {
       spawnFloatingText(this, this.player.x, this.player.y - 36, `${TANK_CLASSES[id].name} ready`, 0x74eeb5)
     }
     this.publishHud()
+    this.publishMenu()
   }
 
   private buySkin(classId: TankClassId, skinId: SkinId) {
@@ -527,6 +537,7 @@ export class TankBattleScene extends Phaser.Scene {
       spawnFloatingText(this, this.player.x, this.player.y - 36, `${skin.name} acquired`, 0xf6d365)
     }
     this.publishHud()
+    this.publishMenu()
   }
 
   private selectSkin(classId: TankClassId, skinId: SkinId) {
@@ -537,30 +548,27 @@ export class TankBattleScene extends Phaser.Scene {
       spawnFloatingText(this, this.player.x, this.player.y - 30, 'Skin applied', 0x74eeb5)
     }
     this.publishHud()
+    this.publishMenu()
   }
 
   private teardown() {
     this.hudController?.destroy()
+    this.mainMenuController?.destroy()
     this.shopController?.destroy()
     this.bus.destroy()
     this.hudController = undefined
+    this.mainMenuController = undefined
     this.shopController = undefined
   }
 
   private showMenu() {
     this.state = 'menu'
+    this.mainMenuController?.show()
     this.screenPanel.clear()
     this.publishHud()
+    this.publishMenu()
     this.banner.setText('')
     this.helper.setText('')
-    this.screenPanel.show({
-      eyebrow: 'ARCADE SURVIVAL',
-      title: 'Tank Game',
-      subtitle: 'Clear waves, collect XP, build a stronger tank.',
-      primary: 'Click or press R to deploy',
-      rows: ['WASD / Arrow keys move', 'Mouse aims', 'Click / Space fires', 'Esc pauses'],
-      accent: GAME_CONFIG.colors.xp,
-    })
   }
 
   private togglePause() {
@@ -597,6 +605,8 @@ export class TankBattleScene extends Phaser.Scene {
 
   private startGame() {
     this.audio.unlock()
+    this.mainMenuController?.hide()
+    this.shopController?.close()
     this.clearObjects()
     this.waveIndex = 0
     this.score = 0
@@ -1481,6 +1491,21 @@ export class TankBattleScene extends Phaser.Scene {
       spawnFloatingText(this,this.player.x, this.player.y - 36, `${config.title} +1`, 0xf6d365)
     }
     this.publishHud()
+    this.publishMenu()
+  }
+
+  private publishMenu() {
+    const cls = this.activeClass()
+    const skin = this.activeSkin()
+    this.bus.emit('menu:snapshot', {
+      gold: this.gold,
+      highScore: this.highScore,
+      peakWave: this.peakWave,
+      activeClassName: cls.name,
+      activeClassTagline: cls.tagline,
+      activeClassIconUrl: cls.iconUrl,
+      activeSkinName: skin.name,
+    })
   }
 
   private publishHud() {
