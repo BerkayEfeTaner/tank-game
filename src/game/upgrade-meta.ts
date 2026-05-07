@@ -84,6 +84,64 @@ export function rarityLabel(rarity: UpgradeRarity): string {
   return rarity.toUpperCase()
 }
 
+const ASSET_BASE = '/assets/kenney-tanks'
+
+export const UPGRADE_ICON_URL: Record<UpgradeType, string> = {
+  armor: `${ASSET_BASE}/barricadeMetal.png`,
+  damage: `${ASSET_BASE}/bulletBlue3_outline.png`,
+  fireRate: `${ASSET_BASE}/shotOrange.png`,
+  moveSpeed: `${ASSET_BASE}/tankBody_green.png`,
+  bulletSpeed: `${ASSET_BASE}/bulletBlue3_outline.png`,
+  critChance: `${ASSET_BASE}/shotOrange.png`,
+  critDamage: `${ASSET_BASE}/shotOrange.png`,
+  scoreBonus: `${ASSET_BASE}/crateMetal.png`,
+  doubleShot: `${ASSET_BASE}/bulletBlue3_outline.png`,
+  tripleShot: `${ASSET_BASE}/bulletBlue3_outline.png`,
+  xpBoost: `${ASSET_BASE}/tileGrass1.png`,
+  piercingShell: `${ASSET_BASE}/bulletDark3_outline.png`,
+  explosiveShell: `${ASSET_BASE}/explosion3.png`,
+  pickupRadius: `${ASSET_BASE}/crateWood.png`,
+  bossDamage: `${ASSET_BASE}/tankBody_darkLarge.png`,
+  bulletGirth: `${ASSET_BASE}/bulletRed3_outline.png`,
+  vampireBite: `${ASSET_BASE}/barrelRed_top.png`,
+  ricochet: `${ASSET_BASE}/barricadeWood.png`,
+  adrenalineRush: `${ASSET_BASE}/shotOrange.png`,
+  berserker: `${ASSET_BASE}/explosion5.png`,
+  phaseShift: `${ASSET_BASE}/oilSpill_large.png`,
+  omegaShell: `${ASSET_BASE}/explosion4.png`,
+  healPack: `${ASSET_BASE}/sandbagBrown.png`,
+  shieldBoost: `${ASSET_BASE}/barricadeMetal.png`,
+  goldRush: `${ASSET_BASE}/crateMetal.png`,
+}
+
+export const UPGRADE_DESCRIPTIONS: Record<UpgradeType, string> = {
+  armor: '+1 max armor and repair 1 HP',
+  damage: '+1 damage per shell',
+  fireRate: 'Shoot faster between shots',
+  moveSpeed: 'Move faster around the field',
+  bulletSpeed: 'Bullets travel faster',
+  critChance: '+2.5% critical hit chance',
+  critDamage: '+15% critical damage',
+  scoreBonus: '+1 to permanent score multiplier',
+  doubleShot: 'Fire two parallel shells',
+  tripleShot: 'Fire three spread shells',
+  xpBoost: 'Gain more XP from kills',
+  piercingShell: 'Bullets pierce extra targets',
+  explosiveShell: 'Bullets splash on impact',
+  pickupRadius: 'Larger pickup magnet range',
+  bossDamage: '+12% damage to bosses',
+  bulletGirth: 'Bigger bullet hitbox + damage',
+  vampireBite: 'Heal 1 HP every 6 kills',
+  ricochet: 'Bullets bounce off walls once',
+  adrenalineRush: '5s overdrive after each wave',
+  berserker: '+35% damage when below 30% HP',
+  phaseShift: '0.7s invulnerability after damage',
+  omegaShell: 'Every 10th shot is a mega blast',
+  healPack: 'Instantly restore 3 armor',
+  shieldBoost: '+1 max armor and full repair',
+  goldRush: '+60% gold drops for 60 seconds',
+}
+
 export function upgradeCategory(type: UpgradeType): string {
   if (type === 'armor' || type === 'shieldBoost' || type === 'phaseShift') return 'DEFENSE'
   if (type === 'moveSpeed') return 'MOBILITY'

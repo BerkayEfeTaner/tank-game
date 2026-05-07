@@ -534,7 +534,15 @@ body {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.04),
     0 18px 40px rgba(0, 0, 0, 0.36);
-  overflow: hidden;
+  overflow: visible;
+}
+
+.hud-loadout {
+  overflow: visible;
+}
+
+.hud-loadout__chips {
+  overflow: visible;
 }
 
 .hud-brand {
@@ -788,6 +796,14 @@ body {
   outline: none;
 }
 
+.hud-wallet--no-store {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.hud-wallet--no-store .hud-wallet__cta {
+  display: none;
+}
+
 .hud-loadout {
   display: grid;
   gap: 8px;
@@ -828,9 +844,9 @@ body {
   grid-template-rows: 1fr auto;
   align-items: center;
   justify-items: center;
-  gap: 1px;
-  height: 38px;
-  border-radius: 7px;
+  gap: 2px;
+  height: 44px;
+  border-radius: 8px;
   padding: 4px 2px 3px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 70%),
@@ -839,6 +855,14 @@ body {
     inset 0 0 0 1px rgba(255, 255, 255, 0.04),
     inset 0 0 0 1.4px var(--rarity, rgba(116, 238, 181, 0.55));
   color: var(--rarity, #74eeb5);
+  cursor: help;
+}
+
+.hud-chip__icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 .hud-chip__abbr {
@@ -856,6 +880,70 @@ body {
   letter-spacing: 0.02em;
   line-height: 1;
   color: rgba(244, 239, 230, 0.78);
+}
+
+.hud-chip__tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(8, 12, 11, 0.98);
+  box-shadow:
+    inset 0 0 0 1px var(--rarity, rgba(116, 238, 181, 0.6)),
+    0 14px 30px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform-origin: bottom center;
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 50;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.hud-chip__tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--rarity, rgba(116, 238, 181, 0.6));
+}
+
+.hud-chip:hover .hud-chip__tip,
+.hud-chip:focus-within .hud-chip__tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.hud-chip__tip strong {
+  color: #fff8dd;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hud-chip__tip em {
+  color: var(--rarity, #74eeb5);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hud-chip__tip span {
+  color: rgba(244, 239, 230, 0.7);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .hud-chip.is-temporary {

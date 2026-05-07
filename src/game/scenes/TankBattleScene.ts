@@ -24,6 +24,7 @@ import {
   type SkinId,
   type TankSkin,
 } from '../skins'
+import { MAP_LAYOUTS, pickLayout, type MapLayout } from '../map-layouts'
 import { MapThemeRenderer } from '../map-theme'
 import { MineSystem } from '../systems/MineSystem'
 import {
@@ -96,12 +97,7 @@ const SPAWN_POINTS = [
   [865, 312],
 ] as const
 
-const WALL_DATA = [
-  [240, 260, 34, 210],
-  [440, 150, 210, 34],
-  [500, 395, 260, 34],
-  [720, 260, 34, 180],
-] as const
+const WAVES_PER_LAYOUT = 2
 
 const BOSS_PROFILES = [
   { style: 'vanguard', title: 'VANGUARD', hullColor: 0x7a2f45, turretColor: 0xffd166, accent: 0xffd166 },
@@ -131,6 +127,7 @@ export class TankBattleScene extends Phaser.Scene {
   private pickupSystem!: PickupSystem
   private mineSystem!: MineSystem
   private walls: Phaser.GameObjects.Rectangle[] = []
+  private currentLayout: MapLayout = MAP_LAYOUTS[0]
   private mapTheme!: MapThemeRenderer
   private upgradeRenderer!: UpgradeRenderer
   private screenPanel!: ScreenPanelRenderer
@@ -405,12 +402,27 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private createWalls() {
-    this.walls = WALL_DATA.map(([x, y, width, height]) => {
+    this.applyLayout(this.currentLayout)
+  }
+
+  private applyLayout(layout: MapLayout) {
+    this.currentLayout = layout
+    for (const wall of this.walls) wall.destroy()
+    this.walls = layout.walls.map(([x, y, width, height]) => {
       const wall = this.add.rectangle(x, y, width, height, GAME_CONFIG.colors.wall)
       wall.setStrokeStyle(2, 0x77856f)
       wall.setDepth(1)
       return wall
     })
+  }
+
+  private maybeRotateLayout() {
+    if (this.waveIndex === 0) return
+    if (this.waveIndex % WAVES_PER_LAYOUT !== 0) return
+    const next = pickLayout(this.waveIndex, this.currentLayout.id)
+    if (next.id !== this.currentLayout.id) {
+      this.applyLayout(next)
+    }
   }
 
   private createInput() {
@@ -654,6 +666,7 @@ export class TankBattleScene extends Phaser.Scene {
   private startWave() {
     const wave = createWaveConfig(this.waveIndex)
     this.upgradeRenderer.clear()
+    this.maybeRotateLayout()
     this.mapTheme.apply(this.waveIndex, this.walls)
     this.mineSystem.clear()
     this.mineSystem.spawn(wave, this.walls, this.player)
@@ -1527,6 +1540,7 @@ export class TankBattleScene extends Phaser.Scene {
       zone: this.mapTheme.name,
       gold: this.gold,
       mods,
+      state: this.state,
     }
     this.bus.emit('hud:snapshot', hudSnapshot)
 

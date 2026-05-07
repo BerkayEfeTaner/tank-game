@@ -33,14 +33,8 @@ export class MineSystem {
           .circle(x, y, 16, 0x171a17, 0.96)
           .setStrokeStyle(3, 0xff5d5d, 0.98)
           .setDepth(3)
-        const label = this.scene.add
-          .text(x, y, 'MINE', {
-            fontFamily: 'Inter, Arial, sans-serif',
-            fontSize: '7px',
-            color: '#ffdf7e',
-            fontStyle: '900',
-          })
-          .setOrigin(0.5)
+        const pulse = this.scene.add
+          .circle(x, y, 5, 0xff5d5d, 0.95)
           .setDepth(4)
         this.scene.tweens.add({
           targets: sprite,
@@ -51,9 +45,18 @@ export class MineSystem {
           repeat: -1,
           ease: 'Sine.easeInOut',
         })
+        this.scene.tweens.add({
+          targets: pulse,
+          scale: 1.5,
+          alpha: 0.45,
+          duration: 420,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        })
         this.mines.push({
           sprite,
-          label,
+          pulse,
           damage: 2 + Math.floor(wave.number / 6),
           radius: 20,
         })
@@ -76,7 +79,7 @@ export class MineSystem {
       }
       onTrigger(mine)
       mine.sprite.destroy()
-      mine.label.destroy()
+      mine.pulse?.destroy()
       this.mines.splice(index, 1)
     }
   }
@@ -84,7 +87,7 @@ export class MineSystem {
   clear() {
     for (const mine of this.mines) {
       mine.sprite.destroy()
-      mine.label.destroy()
+      mine.pulse?.destroy()
     }
     this.mines.length = 0
   }

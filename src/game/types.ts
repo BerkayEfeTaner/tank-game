@@ -106,7 +106,7 @@ export type PickupDrop = {
 
 export type Mine = {
   sprite: Phaser.GameObjects.Arc
-  label: Phaser.GameObjects.Text
+  pulse?: Phaser.GameObjects.Arc
   damage: number
   radius: number
 }
