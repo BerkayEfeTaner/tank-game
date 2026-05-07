@@ -1,15 +1,10 @@
-import {
-  CLASS_ORDER,
-  TANK_CLASSES,
-  type TankClass,
-  type TankClassId,
-} from '../../classes'
+import { TANK_CLASSES, type TankClassId } from '../../classes'
 import type { GameEventBus, ShopSnapshot } from '../../events'
 import { TANK_SKINS, skinsForClass, type TankSkin } from '../../skins'
 import { STAT_UPGRADES, statUpgradeCost } from '../../stats'
 import type { StatUpgradeType } from '../../types'
 
-type StoreTab = 'stats' | 'classes' | 'skins'
+type StoreTab = 'stats' | 'skins'
 
 export class ShopController {
   private readonly bus: GameEventBus
@@ -57,8 +52,8 @@ export class ShopController {
     this.tabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-store-tab]'))
     this.tabButtons.forEach((button) => {
       button.addEventListener('click', () => {
-        const tab = button.dataset.storeTab as StoreTab | undefined
-        if (!tab) return
+        const tab = button.dataset.storeTab
+        if (!isStoreTab(tab)) return
         this.activeTab = tab
         this.render()
       })
@@ -86,8 +81,6 @@ export class ShopController {
     const id = card.dataset.storeId ?? ''
     const classId = (card.dataset.storeClass ?? '') as TankClassId
     if (action === 'stat-buy') this.bus.emit('shop:purchase', id as StatUpgradeType)
-    else if (action === 'class-buy') this.bus.emit('class:purchase', id as TankClassId)
-    else if (action === 'class-select') this.bus.emit('class:select', id as TankClassId)
     else if (action === 'skin-buy') this.bus.emit('skin:purchase', { classId, skinId: id })
     else if (action === 'skin-select') this.bus.emit('skin:select', { classId, skinId: id })
   }
@@ -96,14 +89,13 @@ export class ShopController {
     if (!this.snapshot || !this.body) return
     if (this.goldEl) this.goldEl.textContent = `${this.snapshot.gold.toLocaleString('en-US')}g`
     this.tabButtons.forEach((button) => {
-      const tab = button.dataset.storeTab as StoreTab | undefined
+      const tab = button.dataset.storeTab
       const active = tab === this.activeTab
       button.classList.toggle('is-active', active)
       button.setAttribute('aria-selected', String(active))
     })
     this.body.replaceChildren()
     if (this.activeTab === 'stats') this.renderStats()
-    else if (this.activeTab === 'classes') this.renderClasses()
     else this.renderSkins()
   }
 
@@ -122,29 +114,6 @@ export class ShopController {
         priceLabel: `${cost}g`, stateLabel: `Lv ${level}`,
         iconUrl: config.iconUrl, disabled: !canAfford,
         states: { affordable: canAfford, expensive: !canAfford, poor: !canAfford },
-      }))
-    })
-  }
-
-  private renderClasses() {
-    if (!this.snapshot || !this.body) return
-    const { gold, ownedClasses, activeClassId, peakWave } = this.snapshot
-    CLASS_ORDER.forEach((classId) => {
-      const cls = TANK_CLASSES[classId]
-      const owned = ownedClasses.includes(classId)
-      const isActive = activeClassId === classId
-      const waveLocked
-        = !owned && cls.unlock.waveMilestone > 0 && peakWave < cls.unlock.waveMilestone
-      const canAfford = gold >= cls.unlock.goldCost
-      const meta = computeClassCardMeta({ cls, owned, isActive, waveLocked, canAfford })
-      const description = waveLocked
-        ? `Reach wave ${cls.unlock.waveMilestone} or buy - ${cls.tagline}`
-        : `${cls.tagline} - ${cls.description}`
-      this.body!.appendChild(createCardButton({
-        action: meta.action, id: classId,
-        name: cls.name, description,
-        priceLabel: meta.priceLabel, stateLabel: meta.stateLabel,
-        iconUrl: cls.iconUrl, disabled: meta.disabled, states: meta.states,
       }))
     })
   }
@@ -178,6 +147,10 @@ export class ShopController {
       }))
     })
   }
+}
+
+function isStoreTab(value: string | undefined): value is StoreTab {
+  return value === 'stats' || value === 'skins'
 }
 
 type CardStateFlags = {
@@ -260,34 +233,6 @@ function createCardButton(options: CreateCardOptions): HTMLButtonElement {
   meta.appendChild(state)
   card.appendChild(meta)
   return card
-}
-
-type ClassCardMetaInput = {
-  cls: TankClass; owned: boolean; isActive: boolean
-  waveLocked: boolean; canAfford: boolean
-}
-
-function computeClassCardMeta(input: ClassCardMetaInput) {
-  if (input.isActive) return {
-    action: 'class-noop', priceLabel: '-', stateLabel: 'Active',
-    disabled: true, states: { active: true } as CardStateFlags,
-  }
-  if (input.owned) return {
-    action: 'class-select', priceLabel: '-', stateLabel: 'Equip',
-    disabled: false, states: { affordable: true } as CardStateFlags,
-  }
-  if (input.waveLocked && !input.canAfford) return {
-    action: 'class-locked',
-    priceLabel: `${input.cls.unlock.goldCost}g`,
-    stateLabel: `Wave ${input.cls.unlock.waveMilestone}`,
-    disabled: true, states: { locked: true } as CardStateFlags,
-  }
-  return {
-    action: 'class-buy', priceLabel: `${input.cls.unlock.goldCost}g`,
-    stateLabel: input.canAfford ? 'Buy' : 'Need gold',
-    disabled: !input.canAfford,
-    states: { affordable: input.canAfford, expensive: !input.canAfford, poor: !input.canAfford } as CardStateFlags,
-  }
 }
 
 type SkinCardMetaInput = { skin: TankSkin; owned: boolean; isActive: boolean; canAfford: boolean }
