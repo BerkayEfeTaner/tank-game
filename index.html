@@ -90,50 +90,60 @@
         </div>
       </section>
       <aside id="side-hud" aria-label="Game status">
-        <div class="hud-head">
-          <div>
-            <span class="hud-kicker">Mission</span>
-            <strong>Tank OS</strong>
+        <header class="hud-brand">
+          <strong>Tank OS</strong>
+          <span class="hud-brand__live">Live</span>
+        </header>
+        <section class="hud-headline">
+          <div class="hud-headline__main">
+            <span>Score</span>
+            <strong data-hud="score">0</strong>
           </div>
-          <span class="hud-live">Live</span>
-        </div>
-        <div class="hud-score">
-          <span>Score</span>
-          <strong data-hud="score">0</strong>
-        </div>
-        <div class="hud-xp">
-          <div class="hud-xp-track" aria-hidden="true">
-            <span data-hud="xp-bar"></span>
+          <div class="hud-headline__multi" title="Combo multiplier">
+            <span>x</span>
+            <strong data-hud="multiplier">1</strong>
           </div>
-          <div class="hud-xp-copy">
+        </section>
+        <section class="hud-progress">
+          <div class="hud-progress__head">
             <span>Level</span>
             <strong data-hud="level">1</strong>
             <small data-hud="xp-text">0 / 120 XP</small>
           </div>
-        </div>
-        <div class="hud-grid">
+          <div class="hud-progress__track" aria-hidden="true">
+            <span data-hud="xp-bar"></span>
+          </div>
+        </section>
+        <section class="hud-meta">
+          <div>
+            <span>Wave</span>
+            <strong data-hud="wave">1</strong>
+          </div>
           <div>
             <span>Best</span>
             <strong data-hud="best">0</strong>
           </div>
           <div>
-            <span>Wave</span>
-            <strong data-hud="wave">1</strong>
+            <span>Zone</span>
+            <strong data-hud="zone">Iron Yard</strong>
           </div>
-        </div>
-        <div class="hud-row">
-          <span>Multiplier</span>
-          <strong data-hud="multiplier">x1</strong>
-        </div>
-        <div class="hud-row">
-          <span>Zone</span>
-          <strong data-hud="zone">Iron Yard</strong>
-        </div>
-        <div class="hud-gold">
-          <span>Gold</span>
-          <strong data-hud="gold">0</strong>
-        </div>
-        <div class="hud-mods" data-hud="mods"></div>
+        </section>
+        <section class="hud-wallet">
+          <div class="hud-wallet__amount">
+            <span>Gold</span>
+            <strong data-hud="gold">0</strong>
+          </div>
+          <button class="hud-wallet__cta" type="button" data-shop-toggle aria-expanded="false">
+            <span>Store</span>
+          </button>
+        </section>
+        <section class="hud-loadout">
+          <div class="hud-loadout__head">
+            <span>Loadout</span>
+            <em data-hud="mod-count">0</em>
+          </div>
+          <div class="hud-loadout__chips" data-hud="mods"></div>
+        </section>
       </aside>
       <section id="game-stage" aria-label="Battlefield">
         <div id="top-vitals" aria-label="Player armor">
