@@ -68,7 +68,7 @@ export const TANK_SKINS: TankSkin[] = [
     id: 'heavy-stock',
     classId: 'heavy',
     name: 'Heavy · Iron',
-    description: 'Default reinforced steel chassis.',
+    description: 'Default reinforced steel livery.',
     hullTint: STOCK_TINT,
     turretTint: STOCK_TINT,
     goldCost: 0,

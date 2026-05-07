@@ -12,6 +12,7 @@ import {
 import {
   CLASS_ORDER,
   TANK_CLASSES,
+  classProfileMeters,
   defaultActiveClassId,
   isClassUnlockedByWave,
   type TankClass,
@@ -1517,6 +1518,7 @@ export class TankBattleScene extends Phaser.Scene {
       activeClassTagline: cls.tagline,
       activeClassIconUrl: cls.iconUrl,
       activeSkinName: skin.name,
+      activeClassMeters: classProfileMeters(cls),
     })
   }
 

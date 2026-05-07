@@ -33,6 +33,12 @@ export type TankClass = {
   }
 }
 
+export type ClassProfileMeters = {
+  armor: number
+  damage: number
+  control: number
+}
+
 export const TANK_CLASSES: Record<TankClassId, TankClass> = {
   engineer: {
     id: 'engineer',
@@ -56,7 +62,7 @@ export const TANK_CLASSES: Record<TankClassId, TankClass> = {
     id: 'scout',
     name: 'Scout',
     tagline: 'Glass cannon runner',
-    description: 'Fast chassis with extended pickup magnet, paper armor.',
+    description: 'Fast class with extended pickup magnet, paper armor.',
     bodyAsset: 'tank-scout-body',
     barrelAsset: 'tank-scout-barrel',
     iconUrl: '/assets/kenney-tanks/tankBody_green.png',
@@ -134,4 +140,75 @@ export function defaultActiveClassId(): TankClassId {
 
 export function isClassUnlockedByWave(classDef: TankClass, peakWave: number) {
   return classDef.unlock.waveMilestone > 0 && peakWave >= classDef.unlock.waveMilestone
+}
+
+const CLASS_PROFILE_BOUNDS = {
+  maxHealth: 10,
+  maxDamage: 3,
+  minSpeed: 195,
+  maxSpeed: 305,
+  minFireDelay: 175,
+  maxFireDelay: 360,
+  minBulletSpeed: 520,
+  maxBulletSpeed: 720,
+} as const
+
+export function classProfileMeters(classDef: TankClass): ClassProfileMeters {
+  const { ability, baseStats } = classDef
+  const reloadScore = inverseNormalize(
+    baseStats.fireDelay,
+    CLASS_PROFILE_BOUNDS.minFireDelay,
+    CLASS_PROFILE_BOUNDS.maxFireDelay,
+  )
+
+  const armor = toMeter(
+    14
+    + (baseStats.maxHealth / CLASS_PROFILE_BOUNDS.maxHealth) * 72
+    + damageReductionBonus(ability.damageTakenMultiplier),
+  )
+
+  const damage = toMeter(
+    12
+    + (baseStats.damage / CLASS_PROFILE_BOUNDS.maxDamage) * 48
+    + reloadScore * 18
+    + normalize(
+      baseStats.bulletSpeed,
+      CLASS_PROFILE_BOUNDS.minBulletSpeed,
+      CLASS_PROFILE_BOUNDS.maxBulletSpeed,
+    ) * 14
+    + (ability.critChanceBonus ?? 0) * 70
+    + Math.min(20, (ability.forceExplosiveRadius ?? 0) * 0.45),
+  )
+
+  const control = toMeter(
+    18
+    + normalize(baseStats.speed, CLASS_PROFILE_BOUNDS.minSpeed, CLASS_PROFILE_BOUNDS.maxSpeed) * 58
+    + reloadScore * 20
+    + Math.min(14, (ability.pickupRadiusBonus ?? 0) * 0.35),
+  )
+
+  return { armor, damage, control }
+}
+
+function damageReductionBonus(multiplier?: number) {
+  if (multiplier === undefined || multiplier >= 1) return 0
+  return (1 - multiplier) * 96
+}
+
+function normalize(value: number, min: number, max: number) {
+  if (max <= min) return 0
+  return clamp((value - min) / (max - min), 0, 1)
+}
+
+function inverseNormalize(value: number, min: number, max: number) {
+  if (max <= min) return 0
+  return clamp((max - value) / (max - min), 0, 1)
+}
+
+function toMeter(value: number) {
+  return Math.round(clamp(value, 15, 100))
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
 }

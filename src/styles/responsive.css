@@ -33,6 +33,26 @@
     padding: 14px;
   }
 
+  .menu-class-picker {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    gap: 6px;
+  }
+
+  .menu-class-picker__arrow {
+    width: 32px;
+    height: 82px;
+  }
+
+  .menu-loadout__tank {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .menu-loadout__tank img {
+    width: 70px;
+  }
+
   .menu-stats {
     grid-template-columns: 1fr;
   }

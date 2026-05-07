@@ -21,7 +21,7 @@
             </div>
             <span class="menu-eyebrow">Armored survivor command</span>
             <h1>Tank Game</h1>
-            <p>Choose a chassis, tune permanent upgrades, then deploy into escalating tank waves.</p>
+            <p>Choose a class, tune permanent upgrades, then deploy into escalating tank waves.</p>
             <div class="menu-actions">
               <button type="button" class="menu-primary" data-menu-start>
                 <span>Deploy</span>
@@ -44,28 +44,37 @@
               <strong>Ready</strong>
             </div>
             <div class="menu-loadout__head">
-              <span>Active Chassis</span>
+              <span>Active Class</span>
               <strong data-menu-class-name>Engineer</strong>
             </div>
-            <div class="menu-loadout__tank">
-              <img src="/assets/kenney-tanks/tankBody_blue.png" alt="" data-menu-class-icon />
-              <div>
-                <span data-menu-class-tagline>Loadout veteran</span>
-                <strong data-menu-skin>Standard Issue</strong>
+            <div class="menu-class-picker">
+              <button type="button" class="menu-class-picker__arrow" data-menu-class-prev aria-label="Previous class">
+                <span aria-hidden="true">&lsaquo;</span>
+              </button>
+              <div class="menu-loadout__tank">
+                <img src="/assets/kenney-tanks/tankBody_blue.png" alt="" data-menu-class-icon />
+                <div>
+                  <span data-menu-class-tagline>Loadout veteran</span>
+                  <strong data-menu-skin>Standard Issue</strong>
+                  <em data-menu-class-count>Class 1 / 1</em>
+                </div>
               </div>
+              <button type="button" class="menu-class-picker__arrow" data-menu-class-next aria-label="Next class">
+                <span aria-hidden="true">&rsaquo;</span>
+              </button>
             </div>
             <div class="menu-loadout__bars" aria-label="Loadout profile">
               <div>
                 <span>Armor</span>
-                <i style="--meter: 72%"></i>
+                <i data-menu-meter="armor" role="progressbar" aria-label="Armor" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i>
               </div>
               <div>
                 <span>Damage</span>
-                <i style="--meter: 58%"></i>
+                <i data-menu-meter="damage" role="progressbar" aria-label="Damage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i>
               </div>
               <div>
                 <span>Control</span>
-                <i style="--meter: 66%"></i>
+                <i data-menu-meter="control" role="progressbar" aria-label="Control" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i>
               </div>
             </div>
             <div class="menu-stats">
@@ -177,7 +186,7 @@
               </button>
               <button type="button" role="tab" data-store-tab="classes" aria-selected="false">
                 <span class="store-tab__name">Classes</span>
-                <span class="store-tab__hint">5 chassis</span>
+                <span class="store-tab__hint">5 classes</span>
               </button>
               <button type="button" role="tab" data-store-tab="skins" aria-selected="false">
                 <span class="store-tab__name">Skins</span>

@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import type { TankClassId } from './classes'
+import type { ClassProfileMeters, TankClassId } from './classes'
 import type { SkinId } from './skins'
 import type { StatUpgradeType, UpgradeType } from './types'
 
@@ -45,6 +45,7 @@ export type MenuSnapshot = {
   activeClassTagline: string
   activeClassIconUrl: string
   activeSkinName: string
+  activeClassMeters: ClassProfileMeters
 }
 
 export type SkinSelection = {
