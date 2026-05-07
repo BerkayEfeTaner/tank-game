@@ -1,4 +1,4 @@
-import type { GameEventBus, MenuSnapshot } from '../events'
+import type { GameEventBus, MenuSnapshot } from '../../events'
 
 export class MainMenuController {
   private readonly bus: GameEventBus

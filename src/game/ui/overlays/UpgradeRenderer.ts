@@ -1,14 +1,14 @@
 import Phaser from 'phaser'
-import { GAME_CONFIG, UPGRADE_OPTIONS } from '../config'
-import { TANK_SPRITE_ROTATION_OFFSET } from '../constants'
-import type { UpgradeOption, UpgradeType } from '../types'
+import { GAME_CONFIG, UPGRADE_OPTIONS } from '../../config'
+import { TANK_SPRITE_ROTATION_OFFSET } from '../../constants'
+import type { UpgradeOption, UpgradeType } from '../../types'
 import {
   RARITY_WEIGHTS,
   UPGRADE_CAPS,
   rarityColor,
   upgradeCategory,
   upgradeImpact,
-} from '../upgrade-meta'
+} from '../../upgrade-meta'
 
 export type UpgradeReason = 'wave' | 'level'
 

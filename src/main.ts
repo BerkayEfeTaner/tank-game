@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { GAME_CONFIG } from './game/config'
 import { TankBattleScene } from './game/scenes/TankBattleScene'
-import './style.css'
+import './styles/index.css'
 
 new Phaser.Game({
   type: Phaser.AUTO,

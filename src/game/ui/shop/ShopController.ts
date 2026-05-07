@@ -3,11 +3,11 @@ import {
   TANK_CLASSES,
   type TankClass,
   type TankClassId,
-} from '../classes'
-import type { GameEventBus, ShopSnapshot } from '../events'
-import { TANK_SKINS, skinsForClass, type TankSkin } from '../skins'
-import { STAT_UPGRADES, statUpgradeCost } from '../stats'
-import type { StatUpgradeType } from '../types'
+} from '../../classes'
+import type { GameEventBus, ShopSnapshot } from '../../events'
+import { TANK_SKINS, skinsForClass, type TankSkin } from '../../skins'
+import { STAT_UPGRADES, statUpgradeCost } from '../../stats'
+import type { StatUpgradeType } from '../../types'
 
 type StoreTab = 'stats' | 'classes' | 'skins'
 

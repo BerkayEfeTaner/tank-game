@@ -68,7 +68,6 @@ import { GameAudio } from '../systems/audio'
 import type {
   BossStyle,
   EnemyType,
-  GameState,
   PlayerBuffs,
   PickupDrop,
   PowerUpType,
@@ -77,11 +76,12 @@ import type {
   UpgradeType,
   WaveConfig,
 } from '../types'
-import { HudController } from '../ui/HudController'
-import { MainMenuController } from '../ui/MainMenuController'
-import { ScreenPanelRenderer } from '../ui/ScreenPanelRenderer'
-import { ShopController } from '../ui/ShopController'
-import { UpgradeRenderer } from '../ui/UpgradeRenderer'
+import { HudController } from '../ui/hud/HudController'
+import { MainMenuController } from '../ui/menu/MainMenuController'
+import { ScreenPanelRenderer } from '../ui/overlays/ScreenPanelRenderer'
+import { UpgradeRenderer } from '../ui/overlays/UpgradeRenderer'
+import { ShopController } from '../ui/shop/ShopController'
+import { GameFlowController } from '../flow/GameFlowController'
 
 const ASSET_BASE_PATH = '/assets/kenney-tanks'
 const SPAWN_POINTS = [
@@ -121,7 +121,7 @@ function bossProfileForStyle(style?: BossStyle) {
 
 export class TankBattleScene extends Phaser.Scene {
   private audio = new GameAudio()
-  private state: GameState = 'menu'
+  private flow = new GameFlowController()
   private player!: Tank
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private keys!: GameKeys
@@ -158,7 +158,6 @@ export class TankBattleScene extends Phaser.Scene {
   private upgradeLevels: Record<UpgradeType, number> = this.createEmptyUpgradeLevels()
   private statLevels: Record<StatUpgradeType, number> = createEmptyStatLevels()
   private buffs: PlayerBuffs = this.createDefaultBuffs()
-  private shopPausedRun = false
   private ownedClasses: TankClassId[] = [defaultActiveClassId()]
   private activeClassId: TankClassId = defaultActiveClassId()
   private ownedSkins: Record<TankClassId, SkinId[]> = {} as Record<TankClassId, SkinId[]>
@@ -339,12 +338,12 @@ export class TankBattleScene extends Phaser.Scene {
       return
     }
 
-    if (this.state === 'upgrade') {
+    if (this.flow.is('upgrade')) {
       this.handleUpgradeHotkeys()
       return
     }
 
-    if (this.state !== 'playing') {
+    if (!this.flow.is('playing')) {
       return
     }
 
@@ -390,7 +389,7 @@ export class TankBattleScene extends Phaser.Scene {
     this.upgradeLevels = this.createEmptyUpgradeLevels()
     this.statLevels = loadStatLevels()
     this.buffs = this.createDefaultBuffs()
-    this.state = 'menu'
+    this.flow.enterMenu()
   }
 
   private createBattlefield() {
@@ -419,17 +418,17 @@ export class TankBattleScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.audio.unlock()
-      if (this.state === 'menu' || this.state === 'won' || this.state === 'lost') {
+      if (this.flow.is('menu') || this.flow.is('won') || this.flow.is('lost')) {
         this.startGame()
         return
       }
 
-      if (this.state === 'paused') {
+      if (this.flow.is('paused')) {
         this.resumeGame()
         return
       }
 
-      if (this.state === 'upgrade') {
+      if (this.flow.is('upgrade')) {
         this.chooseUpgradeAt(pointer.x, pointer.y)
         return
       }
@@ -464,16 +463,10 @@ export class TankBattleScene extends Phaser.Scene {
 
   private wireBus() {
     this.bus.on('shop:open', () => {
-      if (this.state === 'playing') {
-        this.shopPausedRun = true
-        this.state = 'paused'
-      }
+      this.flow.pauseForShop()
     })
     this.bus.on('shop:close', () => {
-      if (this.shopPausedRun && this.state === 'paused') {
-        this.state = 'playing'
-        this.shopPausedRun = false
-      }
+      this.flow.resumeAfterShop()
     })
     this.bus.on('shop:purchase', (type) => this.buyStatUpgrade(type))
     this.bus.on('class:purchase', (id) => this.buyClass(id))
@@ -481,7 +474,7 @@ export class TankBattleScene extends Phaser.Scene {
     this.bus.on('skin:purchase', (sel) => this.buySkin(sel.classId, sel.skinId))
     this.bus.on('skin:select', (sel) => this.selectSkin(sel.classId, sel.skinId))
     this.bus.on('menu:start', () => {
-      if (this.state === 'menu') {
+      if (this.flow.is('menu')) {
         this.startGame()
       }
     })
@@ -562,7 +555,7 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private showMenu() {
-    this.state = 'menu'
+    this.flow.enterMenu()
     this.mainMenuController?.show()
     this.screenPanel.clear()
     this.publishHud()
@@ -572,18 +565,21 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private togglePause() {
-    if (this.state === 'playing') {
+    if (this.flow.is('playing')) {
       this.pauseGame()
       return
     }
 
-    if (this.state === 'paused') {
+    if (this.flow.is('paused')) {
       this.resumeGame()
     }
   }
 
   private pauseGame() {
-    this.state = 'paused'
+    if (!this.flow.enterPaused()) {
+      return
+    }
+
     this.banner.setText('')
     this.helper.setText('')
     this.screenPanel.show({
@@ -597,7 +593,10 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private resumeGame() {
-    this.state = 'playing'
+    if (!this.flow.resumePaused()) {
+      return
+    }
+
     this.screenPanel.clear()
     this.banner.setText('')
     this.helper.setText('')
@@ -624,7 +623,7 @@ export class TankBattleScene extends Phaser.Scene {
     this.upgradeLevels = this.createEmptyUpgradeLevels()
     this.statLevels = loadStatLevels()
     this.buffs = this.createDefaultBuffs()
-    this.state = 'playing'
+    this.flow.enterPlaying()
     this.screenPanel.clear()
     this.banner.setText('')
     this.helper.setText('')
@@ -926,7 +925,7 @@ export class TankBattleScene extends Phaser.Scene {
     this.enemies.splice(index, 1)
     this.audio.explosion()
 
-    if (this.enemies.length === 0 && this.waveSpawnQueue.length === 0 && this.state === 'playing') {
+    if (this.enemies.length === 0 && this.waveSpawnQueue.length === 0 && this.flow.is('playing')) {
       this.finishWave()
     }
   }
@@ -1083,7 +1082,7 @@ export class TankBattleScene extends Phaser.Scene {
 
     this.handleVampireKill()
 
-    if (this.enemies.length === 0 && this.waveSpawnQueue.length === 0 && this.state === 'playing') {
+    if (this.enemies.length === 0 && this.waveSpawnQueue.length === 0 && this.flow.is('playing')) {
       this.finishWave()
     }
   }
@@ -1273,7 +1272,7 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private showUpgradeOptions(reason: 'wave' | 'level') {
-    this.state = 'upgrade'
+    this.flow.enterUpgrade()
     this.pendingUpgradeReason = reason
     this.screenPanel.clear()
     this.banner.setText('')
@@ -1364,7 +1363,7 @@ export class TankBattleScene extends Phaser.Scene {
 
   private continueAfterUpgrade() {
     this.upgradeRenderer.clear()
-    this.state = 'playing'
+    this.flow.finishUpgrade()
     this.banner.setText('')
     this.helper.setText('')
     if (this.pendingUpgradeReason === 'wave') {
@@ -1378,7 +1377,7 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private endMatch(nextState: 'won' | 'lost') {
-    this.state = nextState
+    this.flow.endMatch(nextState)
     if (this.score > this.highScore) {
       this.highScore = this.score
       this.isNewRecord = true
@@ -1409,7 +1408,7 @@ export class TankBattleScene extends Phaser.Scene {
       return
     }
 
-    if (this.state === 'playing') {
+    if (this.flow.is('playing')) {
       this.banner.setText('')
     }
   }

@@ -1,0 +1,101 @@
+@media (max-width: 900px) {
+  .main-menu {
+    overflow-y: auto;
+    align-items: start;
+    padding: 18px;
+  }
+
+  .main-menu__content {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .menu-hero {
+    min-height: auto;
+    padding-top: 42px;
+  }
+
+  .menu-hero h1 {
+    font-size: 54px;
+  }
+
+  .menu-hero p {
+    font-size: 15px;
+  }
+
+  .menu-primary,
+  .menu-secondary {
+    width: 100%;
+  }
+
+  .menu-loadout {
+    padding: 14px;
+  }
+
+  .menu-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-tank--blue {
+    right: -18px;
+    top: 26px;
+    width: 132px;
+  }
+
+  .menu-tank--red,
+  .menu-tank--green {
+    display: none;
+  }
+
+  #game-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  #game-stage {
+    grid-row: 1;
+    grid-template-rows: 30px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  #top-vitals {
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    padding: 6px 8px;
+  }
+
+  #side-hud {
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 0.9fr;
+    gap: 8px 10px;
+    max-height: 34vh;
+    padding: 9px;
+  }
+
+  .hud-kicker,
+  .hud-head,
+  .hud-row:nth-of-type(2),
+  .hud-mods {
+    display: none;
+  }
+
+  .hud-xp {
+    min-height: auto;
+    margin: 0;
+    padding: 8px;
+  }
+
+  .hud-score,
+  .hud-grid {
+    margin: 0;
+  }
+
+  canvas {
+    max-height: calc(100vh - 148px);
+  }
+}
