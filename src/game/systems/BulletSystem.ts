@@ -13,6 +13,7 @@ export type FireOptions = {
   damageOverride?: number
   critical?: boolean
   bulletTint?: number
+  baselineExplosiveRadius?: number
 }
 
 export type BulletHitContext = {
@@ -71,6 +72,8 @@ export class BulletSystem {
 
     const piercingLevel = fromPlayer ? this.upgradeLevelOf('piercingShell') : 0
     const explosiveLevel = fromPlayer ? this.upgradeLevelOf('explosiveShell') : 0
+    const upgradeRadius = explosiveLevel > 0 ? 32 + explosiveLevel * 12 : 0
+    const explosiveRadius = Math.max(upgradeRadius, options.baselineExplosiveRadius ?? 0)
     this.bullets.push({
       sprite,
       velocity,
@@ -80,7 +83,7 @@ export class BulletSystem {
       critical,
       piercesShield: tank.enemyType === 'sniper',
       piercesLeft: piercingLevel,
-      explosiveRadius: explosiveLevel > 0 ? 32 + explosiveLevel * 12 : 0,
+      explosiveRadius,
     })
     spawnMuzzleFlash(this.scene, muzzleX, muzzleY, angle)
     if (playSound) {

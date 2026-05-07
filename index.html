@@ -67,59 +67,36 @@
         </div>
         <div id="app"></div>
       </section>
-      <div class="shop-modal" data-shop-panel hidden role="dialog" aria-modal="true" aria-label="Permanent gold upgrades">
+      <div class="shop-modal" data-shop-panel hidden role="dialog" aria-modal="true" aria-label="Permanent garage">
         <button class="shop-modal__backdrop" type="button" data-shop-close aria-label="Close store"></button>
         <div class="shop-modal__panel">
-          <div class="hud-shop">
-            <div class="hud-shop-head">
-              <span>Permanent Store</span>
-              <button type="button" data-shop-close aria-label="Close store">x</button>
-            </div>
-            <button type="button" data-shop="maxHealth">
-              <span>Max HP</span>
-              <strong data-shop-level="maxHealth">0</strong>
-              <small data-shop-cost="maxHealth">60g</small>
-            </button>
-            <button type="button" data-shop="damage">
-              <span>Damage</span>
-              <strong data-shop-level="damage">0</strong>
-              <small data-shop-cost="damage">80g</small>
-            </button>
-            <button type="button" data-shop="fireRate">
-              <span>Fire Rate</span>
-              <strong data-shop-level="fireRate">0</strong>
-              <small data-shop-cost="fireRate">70g</small>
-            </button>
-            <button type="button" data-shop="critChance">
-              <span>Crit %</span>
-              <strong data-shop-level="critChance">0</strong>
-              <small data-shop-cost="critChance">90g</small>
-            </button>
-            <button type="button" data-shop="critDamage">
-              <span>Crit DMG</span>
-              <strong data-shop-level="critDamage">0</strong>
-              <small data-shop-cost="critDamage">100g</small>
-            </button>
-            <button type="button" data-shop="moveSpeed">
-              <span>Move Speed</span>
-              <strong data-shop-level="moveSpeed">0</strong>
-              <small data-shop-cost="moveSpeed">85g</small>
-            </button>
-            <button type="button" data-shop="pickupRadius">
-              <span>Pickup Range</span>
-              <strong data-shop-level="pickupRadius">0</strong>
-              <small data-shop-cost="pickupRadius">75g</small>
-            </button>
-            <button type="button" data-shop="armorRegen">
-              <span>Armor Regen</span>
-              <strong data-shop-level="armorRegen">0</strong>
-              <small data-shop-cost="armorRegen">120g</small>
-            </button>
-            <button type="button" data-shop="bossDamage">
-              <span>Boss DMG</span>
-              <strong data-shop-level="bossDamage">0</strong>
-              <small data-shop-cost="bossDamage">130g</small>
-            </button>
+          <div class="store-frame">
+            <header class="store-head">
+              <div class="store-title">
+                <span class="store-eyebrow">Garage</span>
+                <strong>Loadout &amp; Permanent Upgrades</strong>
+              </div>
+              <div class="store-gold">
+                <span>Wallet</span>
+                <strong data-store-gold>0g</strong>
+              </div>
+              <button type="button" class="store-close" data-shop-close aria-label="Close store">×</button>
+            </header>
+            <nav class="store-tabs" role="tablist" aria-label="Store sections">
+              <button type="button" role="tab" data-store-tab="stats" class="is-active" aria-selected="true">
+                <span class="store-tab__name">Stats</span>
+                <span class="store-tab__hint">Permanent upgrades</span>
+              </button>
+              <button type="button" role="tab" data-store-tab="classes" aria-selected="false">
+                <span class="store-tab__name">Classes</span>
+                <span class="store-tab__hint">5 chassis</span>
+              </button>
+              <button type="button" role="tab" data-store-tab="skins" aria-selected="false">
+                <span class="store-tab__name">Skins</span>
+                <span class="store-tab__hint">Active class livery</span>
+              </button>
+            </nav>
+            <div class="store-body" data-store-body role="tabpanel"></div>
           </div>
         </div>
       </div>

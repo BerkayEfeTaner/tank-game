@@ -18,6 +18,8 @@ export type CreateTankOptions = {
   preferredRange: number
   accuracy: number
   separationRadius: number
+  bodyAssetOverride?: string
+  barrelAssetOverride?: string
 }
 
 export function tankSizeForType(enemyType?: EnemyType) {
@@ -67,14 +69,16 @@ export function tankBarrelAsset(kind: 'player' | 'enemy', enemyType?: EnemyType)
 
 export function createTank(scene: Phaser.Scene, options: CreateTankOptions): Tank {
   const size = tankSizeForType(options.enemyType)
+  const bodyKey = options.bodyAssetOverride ?? tankBodyAsset(options.kind, options.enemyType)
+  const barrelKey = options.barrelAssetOverride ?? tankBarrelAsset(options.kind, options.enemyType)
   const hull = scene.add
-    .image(options.x, options.y, tankBodyAsset(options.kind, options.enemyType))
+    .image(options.x, options.y, bodyKey)
     .setDisplaySize(size, size)
     .setTint(options.hullColor)
   const barrelWidth = options.enemyType === 'boss' ? 17 : options.enemyType === 'sniper' ? 14 : 12
   const barrelHeight = options.enemyType === 'boss' ? 58 : options.enemyType === 'sniper' ? 52 : 44
   const turret = scene.add
-    .image(options.x, options.y, tankBarrelAsset(options.kind, options.enemyType))
+    .image(options.x, options.y, barrelKey)
     .setDisplaySize(barrelWidth, barrelHeight)
     .setOrigin(0.5, 0.78)
     .setTint(options.turretColor)

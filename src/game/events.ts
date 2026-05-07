@@ -1,4 +1,6 @@
 import Phaser from 'phaser'
+import type { TankClassId } from './classes'
+import type { SkinId } from './skins'
 import type { StatUpgradeType, UpgradeType } from './types'
 
 export type HudMod = {
@@ -27,6 +29,16 @@ export type HudSnapshot = {
 export type ShopSnapshot = {
   gold: number
   statLevels: Record<StatUpgradeType, number>
+  ownedClasses: TankClassId[]
+  activeClassId: TankClassId
+  ownedSkins: Record<TankClassId, SkinId[]>
+  activeSkins: Record<TankClassId, SkinId>
+  peakWave: number
+}
+
+export type SkinSelection = {
+  classId: TankClassId
+  skinId: SkinId
 }
 
 export type GameEventMap = {
@@ -35,6 +47,10 @@ export type GameEventMap = {
   'shop:open': void
   'shop:close': void
   'shop:purchase': StatUpgradeType
+  'class:purchase': TankClassId
+  'class:select': TankClassId
+  'skin:purchase': SkinSelection
+  'skin:select': SkinSelection
 }
 
 type EventArgs<K extends keyof GameEventMap> = GameEventMap[K] extends void

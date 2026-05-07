@@ -9,7 +9,21 @@ import {
   spawnFloatingText,
   spawnHitSpark,
 } from '../effects'
+import {
+  CLASS_ORDER,
+  TANK_CLASSES,
+  defaultActiveClassId,
+  isClassUnlockedByWave,
+  type TankClass,
+  type TankClassId,
+} from '../classes'
 import { GameEventBus, type HudMod, type HudSnapshot, type ShopSnapshot } from '../events'
+import {
+  defaultSkinFor,
+  findSkin,
+  type SkinId,
+  type TankSkin,
+} from '../skins'
 import { MapThemeRenderer } from '../map-theme'
 import { MineSystem } from '../systems/MineSystem'
 import {
@@ -32,11 +46,21 @@ import { bossTier, createWaveConfig, expandWaveQueue, isBossWave } from '../syst
 import { findClearSpawn, lineBlocked, moveTankAxis } from '../tank/collision'
 import { createTank, syncTankVisuals, tankSizeForType } from '../tank/factory'
 import {
+  loadActiveClass,
+  loadActiveSkins,
   loadGold,
   loadHighScore,
+  loadOwnedClasses,
+  loadOwnedSkins,
+  loadPeakWave,
   loadStatLevels,
+  saveActiveClass,
+  saveActiveSkins,
   saveGold,
   saveHighScore,
+  saveOwnedClasses,
+  saveOwnedSkins,
+  savePeakWave,
   saveStatLevels,
 } from '../persistence'
 import { STAT_UPGRADES, createEmptyStatLevels, statUpgradeCost } from '../stats'
@@ -133,6 +157,11 @@ export class TankBattleScene extends Phaser.Scene {
   private statLevels: Record<StatUpgradeType, number> = createEmptyStatLevels()
   private buffs: PlayerBuffs = this.createDefaultBuffs()
   private shopPausedRun = false
+  private ownedClasses: TankClassId[] = [defaultActiveClassId()]
+  private activeClassId: TankClassId = defaultActiveClassId()
+  private ownedSkins: Record<TankClassId, SkinId[]> = {} as Record<TankClassId, SkinId[]>
+  private activeSkins: Record<TankClassId, SkinId> = {} as Record<TankClassId, SkinId>
+  private peakWave = 0
 
   constructor() {
     super('tank-battle')
@@ -171,24 +200,44 @@ export class TankBattleScene extends Phaser.Scene {
     }
   }
 
+  private activeClass(): TankClass {
+    return TANK_CLASSES[this.activeClassId]
+  }
+
+  private activeSkin(): TankSkin {
+    const skinId = this.activeSkins[this.activeClassId] ?? defaultSkinFor(this.activeClassId)
+    return findSkin(skinId) ?? findSkin(defaultSkinFor(this.activeClassId))!
+  }
+
   private permanentMaxHealth() {
-    return GAME_CONFIG.player.maxHealth + this.statLevels.maxHealth
+    return this.activeClass().baseStats.maxHealth + this.statLevels.maxHealth
   }
 
   private permanentDamage() {
-    return GAME_CONFIG.player.damage + this.statLevels.damage
+    return this.activeClass().baseStats.damage + this.statLevels.damage
   }
 
   private permanentFireDelay() {
-    return Math.max(80, GAME_CONFIG.player.fireDelay - this.statLevels.fireRate * 12)
+    return Math.max(80, this.activeClass().baseStats.fireDelay - this.statLevels.fireRate * 12)
   }
 
   private permanentMoveSpeed() {
-    return GAME_CONFIG.player.speed + this.statLevels.moveSpeed * 10
+    return this.activeClass().baseStats.speed + this.statLevels.moveSpeed * 10
+  }
+
+  private permanentBulletSpeed() {
+    return this.activeClass().baseStats.bulletSpeed
   }
 
   private pickupCollectRadius() {
-    return this.player.size / 2 + 52 + this.upgradeLevel('pickupRadius') * 18 + this.statLevels.pickupRadius * 12
+    const classBonus = this.activeClass().ability.pickupRadiusBonus ?? 0
+    return (
+      this.player.size / 2
+      + 52
+      + classBonus
+      + this.upgradeLevel('pickupRadius') * 18
+      + this.statLevels.pickupRadius * 12
+    )
   }
 
   private bossDamageMultiplier() {
@@ -249,6 +298,11 @@ export class TankBattleScene extends Phaser.Scene {
 
   create() {
     this.highScore = loadHighScore()
+    this.peakWave = loadPeakWave()
+    this.ownedClasses = loadOwnedClasses()
+    this.activeClassId = loadActiveClass(this.ownedClasses)
+    this.ownedSkins = loadOwnedSkins()
+    this.activeSkins = loadActiveSkins(this.ownedSkins)
     this.resetRuntime()
     this.createBattlefield()
     this.createWalls()
@@ -404,6 +458,70 @@ export class TankBattleScene extends Phaser.Scene {
       }
     })
     this.bus.on('shop:purchase', (type) => this.buyStatUpgrade(type))
+    this.bus.on('class:purchase', (id) => this.buyClass(id))
+    this.bus.on('class:select', (id) => this.selectClass(id))
+    this.bus.on('skin:purchase', (sel) => this.buySkin(sel.classId, sel.skinId))
+    this.bus.on('skin:select', (sel) => this.selectSkin(sel.classId, sel.skinId))
+  }
+
+  private buyClass(id: TankClassId) {
+    if (this.ownedClasses.includes(id)) return
+    const cls = TANK_CLASSES[id]
+    if (this.gold < cls.unlock.goldCost) {
+      if (this.player) {
+        spawnFloatingText(this, this.player.x, this.player.y - 36, 'Need gold', 0xff6b6b)
+      }
+      return
+    }
+    this.gold -= cls.unlock.goldCost
+    this.ownedClasses.push(id)
+    saveGold(this.gold)
+    saveOwnedClasses(this.ownedClasses)
+    if (this.player) {
+      spawnFloatingText(this, this.player.x, this.player.y - 36, `${cls.name} unlocked`, 0xf6d365)
+    }
+    this.publishHud()
+  }
+
+  private selectClass(id: TankClassId) {
+    if (!this.ownedClasses.includes(id) || this.activeClassId === id) return
+    this.activeClassId = id
+    saveActiveClass(id)
+    if (this.player) {
+      spawnFloatingText(this, this.player.x, this.player.y - 36, `${TANK_CLASSES[id].name} ready`, 0x74eeb5)
+    }
+    this.publishHud()
+  }
+
+  private buySkin(classId: TankClassId, skinId: SkinId) {
+    const skin = findSkin(skinId)
+    if (!skin || skin.classId !== classId) return
+    if (this.ownedSkins[classId]?.includes(skinId)) return
+    if (this.gold < skin.goldCost) {
+      if (this.player) {
+        spawnFloatingText(this, this.player.x, this.player.y - 36, 'Need gold', 0xff6b6b)
+      }
+      return
+    }
+    this.gold -= skin.goldCost
+    if (!this.ownedSkins[classId]) this.ownedSkins[classId] = []
+    this.ownedSkins[classId].push(skinId)
+    saveGold(this.gold)
+    saveOwnedSkins(this.ownedSkins)
+    if (this.player) {
+      spawnFloatingText(this, this.player.x, this.player.y - 36, `${skin.name} acquired`, 0xf6d365)
+    }
+    this.publishHud()
+  }
+
+  private selectSkin(classId: TankClassId, skinId: SkinId) {
+    if (!this.ownedSkins[classId]?.includes(skinId)) return
+    this.activeSkins[classId] = skinId
+    saveActiveSkins(this.activeSkins)
+    if (this.player) {
+      spawnFloatingText(this, this.player.x, this.player.y - 30, 'Skin applied', 0x74eeb5)
+    }
+    this.publishHud()
   }
 
   private teardown() {
@@ -485,21 +603,25 @@ export class TankBattleScene extends Phaser.Scene {
     this.screenPanel.clear()
     this.banner.setText('')
     this.helper.setText('')
+    const cls = this.activeClass()
+    const skin = this.activeSkin()
     this.player = createTank(this, {
       kind: 'player',
       x: 130,
       y: 280,
-      hullColor: GAME_CONFIG.colors.player,
-      turretColor: GAME_CONFIG.colors.playerTurret,
+      hullColor: skin.hullTint,
+      turretColor: skin.turretTint,
       maxHealth: this.permanentMaxHealth(),
       speed: this.permanentMoveSpeed(),
       fireDelay: this.permanentFireDelay(),
-      bulletSpeed: GAME_CONFIG.player.bulletSpeed,
+      bulletSpeed: this.permanentBulletSpeed(),
       scoreValue: 0,
       damage: this.permanentDamage(),
       preferredRange: 0,
       accuracy: 0,
       separationRadius: 0,
+      bodyAssetOverride: cls.bodyAsset,
+      barrelAssetOverride: cls.barrelAsset,
     })
     this.startWave()
   }
@@ -823,6 +945,8 @@ export class TankBattleScene extends Phaser.Scene {
       : [baseAngle]
     const offsets = this.buffs.doubleShot > 0 ? [-6, 6] : [0]
 
+    const classCritBonus = this.activeClass().ability.critChanceBonus ?? 0
+    const classExplosive = this.activeClass().ability.forceExplosiveRadius ?? 0
     angles.forEach((angle) => {
       offsets.forEach((offset, offsetIndex) => {
         const roll = rollPlayerDamage(
@@ -831,6 +955,7 @@ export class TankBattleScene extends Phaser.Scene {
           this.statLevels,
           this.buffs,
           this.time.now,
+          classCritBonus,
         )
         this.bulletSystem.fire(this.player, true, time, {
           angleOverride: angle,
@@ -838,6 +963,7 @@ export class TankBattleScene extends Phaser.Scene {
           playSound: angle === angles[0] && offsetIndex === 0,
           damageOverride: roll.damage,
           critical: roll.critical,
+          baselineExplosiveRadius: classExplosive,
         })
       })
     })
@@ -940,10 +1066,12 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private damagePlayer(damage: number, _piercesShield: boolean, _time: number) {
-    this.player.health -= damage
+    const classMult = this.activeClass().ability.damageTakenMultiplier ?? 1
+    const finalDamage = Math.max(1, Math.round(damage * classMult))
+    this.player.health -= finalDamage
     this.multiplier = 1
-    flashTank(this,this.player, 0xffffff)
-    spawnHitSpark(this,this.player.x, this.player.y)
+    flashTank(this, this.player, 0xffffff)
+    spawnHitSpark(this, this.player.x, this.player.y)
     this.cameras.main.shake(90, 0.006)
     this.audio.hit()
 
@@ -1003,9 +1131,11 @@ export class TankBattleScene extends Phaser.Scene {
       this.gainXp(pickup.value)
       spawnFloatingText(this, pickup.sprite.x, pickup.sprite.y - 12, `+${pickup.value} XP`, GAME_CONFIG.colors.xp)
     } else {
-      this.gold += pickup.value
+      const goldMult = this.activeClass().ability.goldMultiplier ?? 1
+      const earned = Math.max(1, Math.round(pickup.value * goldMult))
+      this.gold += earned
       saveGold(this.gold)
-      spawnFloatingText(this, pickup.sprite.x, pickup.sprite.y - 12, `+${pickup.value}g`, 0xf6d365)
+      spawnFloatingText(this, pickup.sprite.x, pickup.sprite.y - 12, `+${earned}g`, 0xf6d365)
     }
   }
 
@@ -1019,7 +1149,42 @@ export class TankBattleScene extends Phaser.Scene {
   private finishWave() {
     this.applyArmorRegen()
     this.waveIndex += 1
+    this.recordWavePeak(this.waveIndex)
     this.showUpgradeOptions('wave')
+  }
+
+  private recordWavePeak(wave: number) {
+    if (wave <= this.peakWave) {
+      return
+    }
+    this.peakWave = wave
+    savePeakWave(this.peakWave)
+    const newlyUnlocked: TankClassId[] = []
+    CLASS_ORDER.forEach((id) => {
+      const cls = TANK_CLASSES[id]
+      if (this.ownedClasses.includes(id)) {
+        return
+      }
+      if (isClassUnlockedByWave(cls, this.peakWave)) {
+        this.ownedClasses.push(id)
+        newlyUnlocked.push(id)
+      }
+    })
+    if (newlyUnlocked.length > 0) {
+      saveOwnedClasses(this.ownedClasses)
+      newlyUnlocked.forEach((id, index) => {
+        const cls = TANK_CLASSES[id]
+        const yOffset = -52 - index * 18
+        spawnFloatingText(
+          this,
+          this.player.x,
+          this.player.y + yOffset,
+          `${cls.name.toUpperCase()} UNLOCKED`,
+          0xf6d365,
+        )
+      })
+      this.publishHud()
+    }
   }
 
   private applyArmorRegen() {
@@ -1263,6 +1428,11 @@ export class TankBattleScene extends Phaser.Scene {
     const shopSnapshot: ShopSnapshot = {
       gold: this.gold,
       statLevels: this.statLevels,
+      ownedClasses: this.ownedClasses,
+      activeClassId: this.activeClassId,
+      ownedSkins: this.ownedSkins,
+      activeSkins: this.activeSkins,
+      peakWave: this.peakWave,
     }
     this.bus.emit('shop:snapshot', shopSnapshot)
   }
