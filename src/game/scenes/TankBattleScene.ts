@@ -1,13 +1,6 @@
 import Phaser from 'phaser'
-import { ENEMY_STATS, GAME_CONFIG, UPGRADE_OPTIONS } from '../config'
-import {
-  HUD_UPGRADE_LABELS,
-  UPGRADE_CAPS,
-  rarityColor,
-  upgradeCategory,
-  upgradeImpact,
-} from '../upgrade-meta'
-import { TANK_SPRITE_ROTATION_OFFSET } from '../constants'
+import { ENEMY_STATS, GAME_CONFIG } from '../config'
+import { HUD_UPGRADE_LABELS, UPGRADE_CAPS } from '../upgrade-meta'
 import {
   flashTank,
   spawnBlastRing,
@@ -15,7 +8,6 @@ import {
   spawnExplosion,
   spawnFloatingText,
   spawnHitSpark,
-  spawnMuzzleFlash,
 } from '../effects'
 import { GameEventBus, type HudMod, type HudSnapshot, type ShopSnapshot } from '../events'
 import { MapThemeRenderer } from '../map-theme'
@@ -27,7 +19,9 @@ import {
   xpRequiredForLevel,
 } from '../systems/PickupSystem'
 import { PowerUpSystem, powerUpColor, powerUpName } from '../systems/PowerUpSystem'
-import { rollPlayerDamage } from '../systems/Combat'
+import { BulletSystem } from '../systems/BulletSystem'
+import { effectiveDamageOnEnemy, rollPlayerDamage } from '../systems/Combat'
+import { createGameKeys, readMovementDirection, type GameKeys } from '../systems/PlayerInput'
 import {
   chooseEnemyMove,
   enemySeparation,
@@ -35,14 +29,7 @@ import {
   wallAvoidance,
 } from '../systems/EnemyAI'
 import { bossTier, createWaveConfig, expandWaveQueue, isBossWave } from '../systems/WaveSystem'
-import {
-  boundsOverlap,
-  findClearSpawn,
-  hitsWall,
-  lineBlocked,
-  moveTankAxis,
-  tankBounds,
-} from '../tank/collision'
+import { findClearSpawn, lineBlocked, moveTankAxis } from '../tank/collision'
 import { createTank, syncTankVisuals, tankSizeForType } from '../tank/factory'
 import {
   loadGold,
@@ -55,7 +42,6 @@ import {
 import { STAT_UPGRADES, createEmptyStatLevels, statUpgradeCost } from '../stats'
 import { GameAudio } from '../systems/audio'
 import type {
-  Bullet,
   EnemyType,
   GameState,
   PlayerBuffs,
@@ -63,12 +49,13 @@ import type {
   PowerUpType,
   StatUpgradeType,
   Tank,
-  UpgradeOption,
   UpgradeType,
   WaveConfig,
 } from '../types'
 import { HudController } from '../ui/HudController'
+import { ScreenPanelRenderer } from '../ui/ScreenPanelRenderer'
 import { ShopController } from '../ui/ShopController'
+import { UpgradeRenderer } from '../ui/UpgradeRenderer'
 
 const ASSET_BASE_PATH = '/assets/kenney-tanks'
 const SPAWN_POINTS = [
@@ -95,26 +82,19 @@ export class TankBattleScene extends Phaser.Scene {
   private state: GameState = 'menu'
   private player!: Tank
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
-  private keys!: Record<string, Phaser.Input.Keyboard.Key>
-  private bullets: Bullet[] = []
+  private keys!: GameKeys
+  private bulletSystem!: BulletSystem
   private enemies: Tank[] = []
   private powerUpSystem!: PowerUpSystem
   private pickupSystem!: PickupSystem
   private mineSystem!: MineSystem
   private walls: Phaser.GameObjects.Rectangle[] = []
   private mapTheme!: MapThemeRenderer
-  private upgradeObjects: Phaser.GameObjects.GameObject[] = []
-  private upgradeCardBounds: Phaser.Geom.Rectangle[] = []
-  private upgradeChoices: UpgradeOption[] = []
-  private screenPanelObjects: Phaser.GameObjects.GameObject[] = []
-  private uiLayer!: Phaser.GameObjects.Container
-  private hudPanel!: Phaser.GameObjects.Graphics
-  private hud!: Phaser.GameObjects.Text
+  private upgradeRenderer!: UpgradeRenderer
+  private screenPanel!: ScreenPanelRenderer
   private bus = new GameEventBus()
   private hudController?: HudController
   private shopController?: ShopController
-  private xpBar!: Phaser.GameObjects.Graphics
-  private xpText!: Phaser.GameObjects.Text
   private banner!: Phaser.GameObjects.Text
   private helper!: Phaser.GameObjects.Text
   private waveIndex = 0
@@ -298,14 +278,13 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private resetRuntime() {
-    this.bullets = []
+    this.bulletSystem?.clear()
     this.enemies = []
     this.powerUpSystem?.clear()
     this.pickupSystem?.clear()
     this.mineSystem?.clear()
-    this.upgradeObjects = []
-    this.screenPanelObjects = []
-    this.upgradeChoices = []
+    this.upgradeRenderer?.clear()
+    this.screenPanel?.clear()
     this.waveIndex = 0
     this.score = 0
     this.multiplier = 1
@@ -332,6 +311,9 @@ export class TankBattleScene extends Phaser.Scene {
     this.powerUpSystem = new PowerUpSystem(this)
     this.pickupSystem = new PickupSystem(this)
     this.mineSystem = new MineSystem(this)
+    this.screenPanel = new ScreenPanelRenderer(this)
+    this.upgradeRenderer = new UpgradeRenderer(this)
+    this.bulletSystem = new BulletSystem(this, this.audio, (type) => this.upgradeLevel(type))
   }
 
   private createWalls() {
@@ -345,18 +327,7 @@ export class TankBattleScene extends Phaser.Scene {
 
   private createInput() {
     this.cursors = this.input.keyboard!.createCursorKeys()
-    this.keys = this.input.keyboard!.addKeys({
-      up: Phaser.Input.Keyboard.KeyCodes.W,
-      down: Phaser.Input.Keyboard.KeyCodes.S,
-      left: Phaser.Input.Keyboard.KeyCodes.A,
-      right: Phaser.Input.Keyboard.KeyCodes.D,
-      fire: Phaser.Input.Keyboard.KeyCodes.SPACE,
-      restart: Phaser.Input.Keyboard.KeyCodes.R,
-      pause: Phaser.Input.Keyboard.KeyCodes.ESC,
-      one: Phaser.Input.Keyboard.KeyCodes.ONE,
-      two: Phaser.Input.Keyboard.KeyCodes.TWO,
-      three: Phaser.Input.Keyboard.KeyCodes.THREE,
-    }) as Record<string, Phaser.Input.Keyboard.Key>
+    this.keys = createGameKeys(this)
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.audio.unlock()
@@ -380,33 +351,12 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private createUi() {
-    this.uiLayer = this.add.container(0, 0)
-    this.uiLayer.setDepth(50)
-    this.hudPanel = this.add.graphics()
-    this.hud = this.add.text(16, 22, '', {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '10px',
-      color: GAME_CONFIG.colors.text,
-      lineSpacing: 1,
-      padding: { x: 0, y: 0 },
-    })
-    this.hud.setShadow(1, 1, '#050706', 3)
-
-    this.xpBar = this.add.graphics()
-    this.xpText = this.add.text(GAME_CONFIG.width / 2, 18, '', {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '10px',
-      color: GAME_CONFIG.colors.text,
-      align: 'center',
-    }).setOrigin(0.5, 0)
-    this.xpText.setShadow(1, 1, '#050706', 3)
-
     this.banner = this.add.text(GAME_CONFIG.width / 2, 176, '', {
       fontFamily: 'Inter, Arial, sans-serif',
       fontSize: '40px',
       color: GAME_CONFIG.colors.text,
       align: 'center',
-    }).setOrigin(0.5)
+    }).setOrigin(0.5).setDepth(50)
 
     this.helper = this.add.text(GAME_CONFIG.width / 2, 246, '', {
       fontFamily: 'Inter, Arial, sans-serif',
@@ -414,13 +364,8 @@ export class TankBattleScene extends Phaser.Scene {
       color: GAME_CONFIG.colors.muted,
       align: 'center',
       lineSpacing: 8,
-    }).setOrigin(0.5)
+    }).setOrigin(0.5).setDepth(50)
 
-    this.uiLayer.add([this.hudPanel, this.hud, this.xpBar, this.xpText, this.banner, this.helper])
-    this.hudPanel.setVisible(false)
-    this.hud.setVisible(false)
-    this.xpBar.setVisible(false)
-    this.xpText.setVisible(false)
     this.hudController = new HudController(this.bus)
     this.shopController = new ShopController(this.bus)
     this.wireBus()
@@ -454,13 +399,11 @@ export class TankBattleScene extends Phaser.Scene {
 
   private showMenu() {
     this.state = 'menu'
-    this.clearScreenPanel()
-    this.hud.setText(`Best Score: ${this.highScore}`)
-    this.drawHudPanel()
+    this.screenPanel.clear()
     this.publishHud()
     this.banner.setText('')
     this.helper.setText('')
-    this.showScreenPanel({
+    this.screenPanel.show({
       eyebrow: 'ARCADE SURVIVAL',
       title: 'Tank Game',
       subtitle: 'Clear waves, collect XP, build a stronger tank.',
@@ -468,101 +411,6 @@ export class TankBattleScene extends Phaser.Scene {
       rows: ['WASD / Arrow keys move', 'Mouse aims', 'Click / Space fires', 'Esc pauses'],
       accent: GAME_CONFIG.colors.xp,
     })
-  }
-
-  private showScreenPanel(options: {
-    eyebrow: string
-    title: string
-    subtitle: string
-    primary: string
-    rows: string[]
-    accent: number
-  }) {
-    this.clearScreenPanel()
-    const panelWidth = 500
-    const panelHeight = 292
-    const x = GAME_CONFIG.width / 2
-    const y = GAME_CONFIG.height / 2
-    const left = x - panelWidth / 2
-    const top = y - panelHeight / 2
-    const accentHex = `#${options.accent.toString(16).padStart(6, '0')}`
-
-    const shade = this.add.graphics().setDepth(61)
-    shade.fillStyle(0x050706, 0.48)
-    shade.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height)
-    shade.fillStyle(0x0b100e, 0.96)
-    shade.fillRoundedRect(left, top, panelWidth, panelHeight, 14)
-    shade.fillStyle(options.accent, 0.1)
-    shade.fillRoundedRect(left + 10, top + 10, panelWidth - 20, 74, 10)
-    shade.lineStyle(2, options.accent, 0.72)
-    shade.strokeRoundedRect(left, top, panelWidth, panelHeight, 14)
-    shade.lineStyle(1, 0xffffff, 0.12)
-    shade.strokeRoundedRect(left + 10, top + 10, panelWidth - 20, panelHeight - 20, 10)
-    shade.fillStyle(options.accent, 1)
-    shade.fillRect(left, top + 30, 5, panelHeight - 60)
-
-    const eyebrow = this.add.text(x, top + 38, options.eyebrow, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '12px',
-      color: accentHex,
-      align: 'center',
-    }).setOrigin(0.5).setDepth(62)
-    const title = this.add.text(x, top + 79, options.title, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '42px',
-      color: GAME_CONFIG.colors.text,
-      align: 'center',
-    }).setOrigin(0.5).setDepth(62)
-    const subtitle = this.add.text(x, top + 124, options.subtitle, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '15px',
-      color: GAME_CONFIG.colors.muted,
-      align: 'center',
-    }).setOrigin(0.5).setDepth(62)
-    const primary = this.add.text(x, top + 172, options.primary, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '17px',
-      color: '#0b0f0d',
-      backgroundColor: accentHex,
-      padding: { x: 16, y: 8 },
-      align: 'center',
-    }).setOrigin(0.5).setDepth(62)
-    const rows = this.add.text(x, top + 230, options.rows.join('   |   '), {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '13px',
-      color: GAME_CONFIG.colors.muted,
-      align: 'center',
-      wordWrap: { width: 420 },
-    }).setOrigin(0.5).setDepth(62)
-
-    this.screenPanelObjects.push(shade, eyebrow, title, subtitle, primary, rows)
-    shade.setAlpha(0)
-    this.tweens.add({
-      targets: shade,
-      alpha: 1,
-      duration: 120,
-      ease: 'Quad.easeOut',
-    })
-
-    const panelTextObjects = [eyebrow, title, subtitle, primary, rows]
-    panelTextObjects.forEach((object) => {
-      object.setAlpha(0)
-      object.y += 12
-    })
-    this.tweens.add({
-      targets: panelTextObjects,
-      alpha: 1,
-      y: '-=12',
-      duration: 190,
-      ease: 'Cubic.easeOut',
-    })
-  }
-
-  private clearScreenPanel() {
-    for (const object of this.screenPanelObjects) {
-      object.destroy()
-    }
-    this.screenPanelObjects = []
   }
 
   private togglePause() {
@@ -580,7 +428,7 @@ export class TankBattleScene extends Phaser.Scene {
     this.state = 'paused'
     this.banner.setText('')
     this.helper.setText('')
-    this.showScreenPanel({
+    this.screenPanel.show({
       eyebrow: 'TACTICAL HOLD',
       title: 'Paused',
       subtitle: 'Action is frozen. Resume when ready.',
@@ -592,7 +440,7 @@ export class TankBattleScene extends Phaser.Scene {
 
   private resumeGame() {
     this.state = 'playing'
-    this.clearScreenPanel()
+    this.screenPanel.clear()
     this.banner.setText('')
     this.helper.setText('')
   }
@@ -617,7 +465,7 @@ export class TankBattleScene extends Phaser.Scene {
     this.statLevels = loadStatLevels()
     this.buffs = this.createDefaultBuffs()
     this.state = 'playing'
-    this.clearScreenPanel()
+    this.screenPanel.clear()
     this.banner.setText('')
     this.helper.setText('')
     this.player = createTank(this, {
@@ -641,7 +489,7 @@ export class TankBattleScene extends Phaser.Scene {
 
   private startWave() {
     const wave = createWaveConfig(this.waveIndex)
-    this.clearUpgradeObjects()
+    this.upgradeRenderer.clear()
     this.mapTheme.apply(this.waveIndex, this.walls)
     this.mineSystem.clear()
     this.mineSystem.spawn(wave, this.walls, this.player)
@@ -736,21 +584,7 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private movePlayer(delta: number, _time: number) {
-    const direction = new Phaser.Math.Vector2(0, 0)
-
-    if (this.cursors.left.isDown || this.keys.left.isDown) {
-      direction.x -= 1
-    }
-    if (this.cursors.right.isDown || this.keys.right.isDown) {
-      direction.x += 1
-    }
-    if (this.cursors.up.isDown || this.keys.up.isDown) {
-      direction.y -= 1
-    }
-    if (this.cursors.down.isDown || this.keys.down.isDown) {
-      direction.y += 1
-    }
-
+    const direction = readMovementDirection(this.cursors, this.keys)
     if (direction.lengthSq() === 0) {
       return
     }
@@ -789,7 +623,7 @@ export class TankBattleScene extends Phaser.Scene {
         if (enemy.enemyType === 'boss') {
           this.fireBossPattern(enemy, time)
         } else if (enemy.enemyType !== 'charger' && enemy.enemyType !== 'bomber') {
-          this.fireBullet(enemy, false, time)
+          this.bulletSystem.fire(enemy, false, time)
         }
       }
     }
@@ -804,7 +638,10 @@ export class TankBattleScene extends Phaser.Scene {
       spawnBlastRing(this,enemy.x, enemy.y, 92, 0xffd166)
       const bulletCount = tier >= 4 ? 8 : 6
       for (let index = 0; index < bulletCount; index += 1) {
-        this.fireBullet(enemy, false, time, baseAngle + (Math.PI * 2 * index) / bulletCount, 0, index === 0)
+        this.bulletSystem.fire(enemy, false, time, {
+          angleOverride: baseAngle + (Math.PI * 2 * index) / bulletCount,
+          playSound: index === 0,
+        })
       }
       return
     }
@@ -812,7 +649,11 @@ export class TankBattleScene extends Phaser.Scene {
     if (tier >= 3 && pattern === 2) {
       spawnBlastRing(this,enemy.x, enemy.y, 68, 0xff7b72)
       ;[-0.16, 0, 0.16].forEach((offset, index) => {
-        this.fireBullet(enemy, false, time, baseAngle + offset, 18 * (index - 1), index === 0)
+        this.bulletSystem.fire(enemy, false, time, {
+          angleOverride: baseAngle + offset,
+          lateralOffset: 18 * (index - 1),
+          playSound: index === 0,
+        })
       })
       return
     }
@@ -824,7 +665,10 @@ export class TankBattleScene extends Phaser.Scene {
         : [-0.18, 0, 0.18]
 
     angles.forEach((offset, index) => {
-      this.fireBullet(enemy, false, time, baseAngle + offset, 0, index === 0)
+      this.bulletSystem.fire(enemy, false, time, {
+        angleOverride: baseAngle + offset,
+        playSound: index === 0,
+      })
     })
   }
 
@@ -898,100 +742,46 @@ export class TankBattleScene extends Phaser.Scene {
           this.buffs,
           this.time.now,
         )
-        this.fireBullet(this.player, true, time, angle, offset, angle === angles[0] && offsetIndex === 0, roll.damage, roll.critical)
+        this.bulletSystem.fire(this.player, true, time, {
+          angleOverride: angle,
+          lateralOffset: offset,
+          playSound: angle === angles[0] && offsetIndex === 0,
+          damageOverride: roll.damage,
+          critical: roll.critical,
+        })
       })
     })
   }
 
-  private fireBullet(
-    tank: Tank,
-    fromPlayer: boolean,
-    time: number,
-    angleOverride?: number,
-    lateralOffset = 0,
-    playSound = true,
-    damageOverride?: number,
-    critical = false,
-  ) {
-    tank.lastFire = time
-
-    const angle = angleOverride ?? (fromPlayer
-      ? tank.turretAngle
-      : tank.turretAngle + Phaser.Math.FloatBetween(-tank.accuracy, tank.accuracy))
-    const muzzleX = tank.x + Math.cos(angle) * 34 + Math.cos(angle + Math.PI / 2) * lateralOffset
-    const muzzleY = tank.y + Math.sin(angle) * 34 + Math.sin(angle + Math.PI / 2) * lateralOffset
-    const bulletKey = fromPlayer ? 'bullet-player' : tank.enemyType === 'sniper' ? 'bullet-sniper' : 'bullet-enemy'
-    const sprite = this.add.image(muzzleX, muzzleY, bulletKey)
-      .setDisplaySize(critical ? 10 : 8, critical ? 22 : 18)
-      .setDepth(4)
-    if (critical) {
-      sprite.setTint(0xf6d365)
-    }
-    sprite.rotation = angle + TANK_SPRITE_ROTATION_OFFSET
-    const velocity = new Phaser.Math.Vector2(Math.cos(angle) * tank.bulletSpeed, Math.sin(angle) * tank.bulletSpeed)
-
-    const piercingLevel = fromPlayer ? this.upgradeLevel('piercingShell') : 0
-    const explosiveLevel = fromPlayer ? this.upgradeLevel('explosiveShell') : 0
-    this.bullets.push({
-      sprite,
-      velocity,
-      fromPlayer,
-      age: 0,
-      damage: damageOverride ?? tank.damage,
-      critical,
-      piercesShield: tank.enemyType === 'sniper',
-      piercesLeft: piercingLevel,
-      explosiveRadius: explosiveLevel > 0 ? 32 + explosiveLevel * 12 : 0,
-    })
-    spawnMuzzleFlash(this,muzzleX, muzzleY, angle)
-    if (playSound) {
-      this.audio.shot()
-    }
-  }
-
   private updateBullets(delta: number, time: number) {
-    for (let index = this.bullets.length - 1; index >= 0; index -= 1) {
-      const bullet = this.bullets[index]
-      bullet.age += delta
-      bullet.sprite.x += bullet.velocity.x * (delta / 1000)
-      bullet.sprite.y += bullet.velocity.y * (delta / 1000)
-
-      if (this.shouldRemoveBullet(bullet)) {
-        this.removeBullet(index)
-        continue
-      }
-
-      if (bullet.fromPlayer) {
-        const hitIndex = this.enemies.findIndex((enemy) => boundsOverlap(bullet.sprite.getBounds(), tankBounds(enemy)))
-        if (hitIndex >= 0) {
-          const primary = this.enemies[hitIndex]
-          const hitX = primary.x
-          const hitY = primary.y
-          this.damageEnemy(hitIndex, bullet.damage, bullet.critical === true)
-          if (bullet.explosiveRadius && bullet.explosiveRadius > 0) {
-            this.applyShellExplosion(hitX, hitY, bullet.explosiveRadius, Math.max(1, Math.floor(bullet.damage * 0.45)), primary)
-          }
-          if ((bullet.piercesLeft ?? 0) > 0) {
-            bullet.piercesLeft = (bullet.piercesLeft ?? 0) - 1
-            continue
-          }
-          this.removeBullet(index)
+    this.bulletSystem.update(delta, {
+      enemies: this.enemies,
+      player: this.player,
+      walls: this.walls,
+      onEnemyHit: (hitIndex, bullet) => {
+        const primary = this.enemies[hitIndex]
+        const hitX = primary.x
+        const hitY = primary.y
+        this.damageEnemy(hitIndex, bullet.damage, bullet.critical === true)
+        if (bullet.explosiveRadius && bullet.explosiveRadius > 0) {
+          this.applyShellExplosion(
+            hitX,
+            hitY,
+            bullet.explosiveRadius,
+            Math.max(1, Math.floor(bullet.damage * 0.45)),
+            primary,
+          )
         }
-      } else if (boundsOverlap(bullet.sprite.getBounds(), tankBounds(this.player))) {
+      },
+      onPlayerHit: (bullet) => {
         this.damagePlayer(bullet.damage, bullet.piercesShield === true, time)
-        this.removeBullet(index)
-      }
-    }
+      },
+    })
   }
 
   private damageEnemy(index: number, damage: number, critical = false) {
     const enemy = this.enemies[index]
-    const shieldedDamage = enemy.enemyType === 'shield' && !critical
-      ? Math.max(1, Math.floor(damage * 0.72))
-      : damage
-    const finalDamage = enemy.enemyType === 'boss'
-      ? Math.max(1, Math.round(shieldedDamage * this.bossDamageMultiplier()))
-      : shieldedDamage
+    const finalDamage = effectiveDamageOnEnemy(damage, enemy, critical, this.bossDamageMultiplier())
     enemy.health -= finalDamage
     flashTank(this,enemy, 0xff9b72)
     spawnHitSpark(this,enemy.x, enemy.y)
@@ -1041,7 +831,6 @@ export class TankBattleScene extends Phaser.Scene {
 
   private gainXp(amount: number) {
     this.xp += amount
-    this.pulseXpText()
     if (this.xp < this.nextLevelXp) {
       return
     }
@@ -1050,18 +839,6 @@ export class TankBattleScene extends Phaser.Scene {
     this.level += 1
     this.nextLevelXp = xpRequiredForLevel(this.level)
     this.showUpgradeOptions('level')
-  }
-
-  private pulseXpText() {
-    this.tweens.killTweensOf(this.xpText)
-    this.xpText.setScale(1)
-    this.tweens.add({
-      targets: this.xpText,
-      scale: 1.08,
-      duration: 80,
-      yoyo: true,
-      ease: 'Quad.easeOut',
-    })
   }
 
   private damagePlayer(damage: number, _piercesShield: boolean, _time: number) {
@@ -1160,303 +937,18 @@ export class TankBattleScene extends Phaser.Scene {
   private showUpgradeOptions(reason: 'wave' | 'level') {
     this.state = 'upgrade'
     this.pendingUpgradeReason = reason
-    this.upgradeChoices = this.createUpgradeChoices()
-    this.clearUpgradeObjects()
-    this.clearScreenPanel()
-    if (this.upgradeChoices.length === 0) {
-      this.continueAfterUpgrade()
-      return
-    }
-
-    const overlay = this.add.graphics().setDepth(60)
-    overlay.fillStyle(0x050706, 0.7)
-    overlay.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height)
-    overlay.fillStyle(0x0e1612, 0.78)
-    overlay.fillRoundedRect(116, 50, 728, 78, 10)
-    overlay.lineStyle(1, GAME_CONFIG.colors.xp, 0.34)
-    overlay.strokeRoundedRect(116, 50, 728, 78, 10)
-    overlay.fillStyle(GAME_CONFIG.colors.xp, 0.9)
-    overlay.fillRect(136, 62, 4, 54)
-    this.upgradeObjects.push(overlay)
-
-    const eyebrow = reason === 'level' ? `LEVEL ${this.level} REACHED` : `WAVE ${this.waveIndex} CLEARED`
-    const title = this.add.text(GAME_CONFIG.width / 2, 80, reason === 'level' ? 'Choose a Field Mod' : 'Supply Drop', {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '32px',
-      color: GAME_CONFIG.colors.text,
-      align: 'center',
-    }).setOrigin(0.5).setDepth(70)
-    const subtitle = this.add.text(GAME_CONFIG.width / 2, 112, `${eyebrow}  |  Press 1, 2, 3 or click`, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '13px',
-      color: GAME_CONFIG.colors.muted,
-      align: 'center',
-    }).setOrigin(0.5).setDepth(70)
+    this.screenPanel.clear()
     this.banner.setText('')
     this.helper.setText('')
-    this.upgradeObjects.push(title, subtitle)
-
-    this.upgradeChoices.forEach((choice, index) => {
-      this.drawUpgradeCard(238 + index * 242, 320, choice, index)
+    const shown = this.upgradeRenderer.show({
+      reason,
+      level: this.level,
+      waveIndex: this.waveIndex,
+      upgradeLevels: this.upgradeLevels,
     })
-  }
-
-  private drawUpgradeCard(x: number, y: number, choice: UpgradeOption, index: number) {
-    const width = 222
-    const height = 244
-    const left = x - width / 2
-    const top = y - height / 2
-    const cardColor = rarityColor(choice.rarity)
-    const rarityHex = `#${cardColor.toString(16).padStart(6, '0')}`
-    const levelText = this.upgradeLevelText(choice.type, true)
-    const card = this.add.graphics().setDepth(66)
-    const paintCard = (hovered = false) => {
-      card.clear()
-      card.fillStyle(0x000000, hovered ? 0.34 : 0.22)
-      card.fillRoundedRect(left - 5, top + 6, width + 10, height + 12, 10)
-      card.fillStyle(0x070908, 0.99)
-      card.fillRoundedRect(left, top, width, height, 8)
-      card.fillStyle(hovered ? 0x17251f : 0x101815, 1)
-      card.fillRoundedRect(left + 8, top + 8, width - 16, height - 16, 5)
-      card.fillStyle(cardColor, hovered ? 0.32 : 0.2)
-      card.fillRoundedRect(left + 14, top + 14, width - 28, 96, 4)
-      card.fillStyle(0x050706, 0.52)
-      card.fillRoundedRect(left + 24, top + 26, width - 48, 72, 5)
-      card.fillStyle(cardColor, 1)
-      card.fillRoundedRect(left + 12, top + 18, 4, height - 36, 2)
-      card.fillRoundedRect(left + width - 16, top + 18, 4, height - 36, 2)
-      card.fillRect(left + 24, top + 18, width - 48, 3)
-      card.fillStyle(0xffffff, hovered ? 0.08 : 0.04)
-      card.fillTriangle(left + 16, top + 16, left + width - 18, top + 16, left + width - 54, top + 82)
-      card.lineStyle(2, cardColor, hovered ? 1 : 0.88)
-      card.strokeRoundedRect(left, top, width, height, 8)
-      card.lineStyle(1, 0xffffff, hovered ? 0.2 : 0.13)
-      card.strokeRoundedRect(left + 8, top + 8, width - 16, height - 16, 5)
-      card.lineStyle(1, 0xffffff, 0.09)
-      card.lineBetween(left + 22, top + 122, left + width - 22, top + 122)
-      card.lineStyle(2, cardColor, hovered ? 0.82 : 0.5)
-      card.lineBetween(left + 20, top + height - 18, left + width - 20, top + height - 18)
+    if (!shown) {
+      this.continueAfterUpgrade()
     }
-    paintCard()
-    const hover = this.add.graphics().setDepth(67)
-    hover.lineStyle(3, 0xffffff, 0.72)
-    hover.strokeRoundedRect(left - 4, top - 4, width + 8, height + 8, 9)
-    hover.setAlpha(0)
-
-    const badge = this.add.rectangle(left + 32, top + 34, 36, 28, cardColor, 1).setDepth(68)
-    const number = this.add.text(left + 30, top + 32, `${index + 1}`, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '17px',
-      color: '#0b0f0d',
-    }).setOrigin(0.5).setDepth(69)
-    number.setPosition(left + 32, top + 34)
-    const rarity = this.add.text(left + width - 22, top + 30, choice.rarity.toUpperCase(), {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '11px',
-      color: rarityHex,
-      align: 'right',
-    }).setOrigin(1, 0.5).setDepth(69)
-    const levelBadge = this.add.text(left + width - 22, top + 55, levelText, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '12px',
-      color: GAME_CONFIG.colors.text,
-      align: 'right',
-      backgroundColor: '#070908',
-      padding: { x: 6, y: 3 },
-    }).setOrigin(1, 0.5).setDepth(69)
-    const category = this.add.text(x, top + 132, upgradeCategory(choice.type), {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '11px',
-      color: rarityHex,
-      align: 'center',
-    }).setOrigin(0.5).setDepth(69)
-    const title = this.add.text(x, top + 158, choice.title, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '18px',
-      color: GAME_CONFIG.colors.text,
-      align: 'center',
-      wordWrap: { width: 170 },
-    }).setOrigin(0.5).setDepth(69)
-    const description = this.add.text(x, top + 198, choice.description, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '13px',
-      color: GAME_CONFIG.colors.muted,
-      align: 'center',
-      lineSpacing: 4,
-      wordWrap: { width: 166 },
-    }).setOrigin(0.5).setDepth(69)
-    const chip = this.add.text(x, top + height - 26, `${upgradeImpact(choice.type)}  ${levelText}`, {
-      fontFamily: 'Inter, Arial, sans-serif',
-      fontSize: '12px',
-      color: '#0b0f0d',
-      backgroundColor: rarityHex,
-      padding: { x: 8, y: 4 },
-      align: 'center',
-    }).setOrigin(0.5).setDepth(69)
-    const iconObjects = this.drawUpgradeIcon(x, top + 70, choice.type, cardColor)
-    const progressObjects = this.drawUpgradeProgressPips(x, top + 111, choice.type, cardColor, true)
-    const hitZone = this.add.zone(x, y, width, height).setDepth(80)
-    hitZone.setInteractive({ useHandCursor: true })
-    hitZone.on('pointerover', () => {
-      hover.setAlpha(0.72)
-      paintCard(true)
-    })
-    hitZone.on('pointerout', () => {
-      hover.setAlpha(0)
-      paintCard()
-    })
-
-    this.upgradeCardBounds[index] = new Phaser.Geom.Rectangle(left, top, width, height)
-    this.upgradeObjects.push(card, hover, badge, number, rarity, levelBadge, category, title, description, chip, hitZone, ...iconObjects, ...progressObjects)
-
-    const animatedObjects = [card, badge, number, rarity, levelBadge, category, title, description, chip, ...iconObjects, ...progressObjects] as Array<
-      Phaser.GameObjects.GameObject & { setAlpha(value: number): unknown; y: number }
-    >
-    animatedObjects.forEach((object) => {
-      object.setAlpha(0)
-      object.y += 14
-    })
-    hover.y += 14
-    hitZone.y += 14
-    this.tweens.add({
-      targets: animatedObjects,
-      alpha: 1,
-      y: '-=14',
-      delay: index * 70,
-      duration: 220,
-      ease: 'Cubic.easeOut',
-    })
-    this.tweens.add({
-      targets: [hover, hitZone],
-      y: '-=14',
-      delay: index * 70,
-      duration: 220,
-      ease: 'Cubic.easeOut',
-    })
-  }
-
-  private drawUpgradeIcon(x: number, y: number, type: UpgradeType, color: number) {
-    const objects: Phaser.GameObjects.GameObject[] = []
-    const frame = this.add.graphics().setDepth(68)
-    frame.fillStyle(0x050706, 0.62)
-    frame.fillRoundedRect(x - 41, y - 35, 82, 70, 6)
-    frame.lineStyle(1, color, 0.55)
-    frame.strokeRoundedRect(x - 41, y - 35, 82, 70, 6)
-    frame.fillStyle(color, 0.16)
-    frame.fillCircle(x, y, 28)
-    objects.push(frame)
-
-    const addIconImage = (key: string, offsetX = 0, offsetY = 0, size = 48, rotation = 0) => {
-      const image = this.add.image(x + offsetX, y + offsetY, key)
-        .setDisplaySize(size, size)
-        .setDepth(69)
-        .setRotation(rotation)
-      objects.push(image)
-      return image
-    }
-
-    if (type === 'armor') {
-      addIconImage('decor-barricade-metal', 0, 0, 52)
-    } else if (type === 'damage') {
-      addIconImage('bullet-player', -8, 0, 48, TANK_SPRITE_ROTATION_OFFSET)
-      addIconImage('muzzle-flash', 17, 0, 28, 0.35)
-    } else if (type === 'fireRate') {
-      addIconImage('muzzle-flash', -14, 0, 30, -0.2)
-      addIconImage('muzzle-flash', 14, 0, 30, 0.2)
-    } else if (type === 'moveSpeed') {
-      addIconImage('tank-scout-body', 0, 0, 52, TANK_SPRITE_ROTATION_OFFSET)
-    } else if (type === 'bulletSpeed') {
-      addIconImage('bullet-player', 0, 0, 54, TANK_SPRITE_ROTATION_OFFSET)
-    } else if (type === 'scoreBonus') {
-      addIconImage('decor-crate-metal', 0, 0, 50)
-    } else if (type === 'doubleShot') {
-      addIconImage('bullet-player', -10, -8, 38, TANK_SPRITE_ROTATION_OFFSET)
-      addIconImage('bullet-player', 12, 8, 38, TANK_SPRITE_ROTATION_OFFSET)
-    } else if (type === 'tripleShot') {
-      addIconImage('bullet-player', -17, 9, 34, TANK_SPRITE_ROTATION_OFFSET - 0.45)
-      addIconImage('bullet-player', 0, -2, 36, TANK_SPRITE_ROTATION_OFFSET)
-      addIconImage('bullet-player', 17, 9, 34, TANK_SPRITE_ROTATION_OFFSET + 0.45)
-    } else if (type === 'piercingShell') {
-      addIconImage('bullet-player', -11, 0, 44, TANK_SPRITE_ROTATION_OFFSET)
-      addIconImage('bullet-player', 13, 0, 34, TANK_SPRITE_ROTATION_OFFSET)
-    } else if (type === 'explosiveShell') {
-      addIconImage('muzzle-flash', 0, 0, 54, 0.2)
-      addIconImage('bullet-player', -3, -2, 32, TANK_SPRITE_ROTATION_OFFSET)
-    } else if (type === 'pickupRadius') {
-      addIconImage('decor-crate-wood', 0, 0, 40)
-      addIconImage('tile-grass', 18, -16, 24)
-    } else if (type === 'bossDamage') {
-      addIconImage('tank-heavy-body', 0, 0, 52, TANK_SPRITE_ROTATION_OFFSET)
-      addIconImage('muzzle-flash', 18, -16, 26)
-    } else if (type === 'critChance' || type === 'critDamage') {
-      addIconImage('muzzle-flash', 0, 0, 42, 0)
-    } else {
-      addIconImage('tile-grass', 0, 0, 52)
-    }
-
-    const textLabel = type === 'xpBoost'
-      ? 'XP'
-      : type === 'pickupRadius'
-        ? 'R'
-      : type === 'critChance'
-        ? 'CR'
-        : type === 'critDamage'
-          ? 'CD'
-          : type === 'bossDamage'
-            ? 'B'
-          : ''
-    const label = textLabel
-      ? this.add.text(x, y + 1, textLabel, {
-        fontFamily: 'Inter, Arial, sans-serif',
-        fontSize: '17px',
-        color: '#0b0f0d',
-      }).setOrigin(0.5).setDepth(70)
-      : undefined
-
-    if (label) {
-      objects.push(label)
-    }
-    return objects
-  }
-
-  private drawUpgradeProgressPips(x: number, y: number, type: UpgradeType, color: number, next = false) {
-    const objects: Phaser.GameObjects.GameObject[] = []
-    const cap = this.upgradeCap(type)
-    const level = Math.min(this.upgradeLevel(type) + (next ? 1 : 0), cap)
-    const pipCount = Math.min(cap, 8)
-    const pipWidth = 10
-    const gap = 4
-    const totalWidth = pipCount * pipWidth + (pipCount - 1) * gap
-    const startX = x - totalWidth / 2
-
-    for (let index = 0; index < pipCount; index += 1) {
-      const pip = this.add.rectangle(
-        startX + index * (pipWidth + gap) + pipWidth / 2,
-        y,
-        pipWidth,
-        4,
-        index < level ? color : 0x314039,
-        index < level ? 1 : 0.75,
-      ).setDepth(69)
-      objects.push(pip)
-    }
-
-    return objects
-  }
-
-  private createUpgradeChoices() {
-    const scoreAllowed = Math.random() < 0.18
-    const pool = UPGRADE_OPTIONS.filter((option) => {
-      if (this.isUpgradeMaxed(option.type)) {
-        return false
-      }
-      if (option.type === 'scoreBonus' && !scoreAllowed) {
-        return false
-      }
-      return true
-    })
-    const shuffled = Phaser.Utils.Array.Shuffle([...pool])
-    return shuffled.slice(0, 3)
   }
 
   private handleUpgradeHotkeys() {
@@ -1472,16 +964,14 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private chooseUpgradeAt(x: number, y: number) {
-    for (let index = 0; index < this.upgradeCardBounds.length; index += 1) {
-      const bounds = this.upgradeCardBounds[index]
-      if (Phaser.Geom.Rectangle.Contains(bounds, x, y)) {
-        this.applyUpgradeByIndex(index)
-      }
+    const index = this.upgradeRenderer.hitTest(x, y)
+    if (index >= 0) {
+      this.applyUpgradeByIndex(index)
     }
   }
 
   private applyUpgradeByIndex(index: number) {
-    const choice = this.upgradeChoices[index]
+    const choice = this.upgradeRenderer.choiceAt(index)
     if (!choice || this.isUpgradeMaxed(choice.type)) {
       return
     }
@@ -1520,7 +1010,7 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private continueAfterUpgrade() {
-    this.clearUpgradeObjects()
+    this.upgradeRenderer.clear()
     this.state = 'playing'
     this.banner.setText('')
     this.helper.setText('')
@@ -1543,7 +1033,7 @@ export class TankBattleScene extends Phaser.Scene {
     }
     this.banner.setText('')
     this.helper.setText('')
-    this.showScreenPanel({
+    this.screenPanel.show({
       eyebrow: nextState === 'won' ? 'MISSION COMPLETE' : 'RUN ENDED',
       title: nextState === 'won' ? 'Sector Clear' : 'Mission Failed',
       subtitle: `Final score ${this.score}  |  Best ${this.highScore}${this.isNewRecord ? '  |  New record' : ''}`,
@@ -1559,31 +1049,7 @@ export class TankBattleScene extends Phaser.Scene {
     }
   }
 
-  private shouldRemoveBullet(bullet: Bullet) {
-    const outOfBounds = bullet.sprite.x < 0
-      || bullet.sprite.x > GAME_CONFIG.width
-      || bullet.sprite.y < 0
-      || bullet.sprite.y > GAME_CONFIG.height
-
-    return outOfBounds || bullet.age > GAME_CONFIG.bulletLife || hitsWall(bullet.sprite, this.walls)
-  }
-
-  private removeBullet(index: number) {
-    this.bullets[index].sprite.destroy()
-    this.bullets.splice(index, 1)
-  }
-
   private updateHud(time: number) {
-    const waveNumber = this.pendingWave?.number ?? this.waveIndex + 1
-    const bonusMultiplier = this.multiplier + this.buffs.scoreBonus
-    const mods = this.activeHudMods(time)
-    const hudLines = [
-      `SCORE ${this.score.toLocaleString('en-US')}`,
-      `HP ${Math.max(this.player.health, 0)}/${this.player.maxHealth}  WAVE ${waveNumber}`,
-      `LV ${this.level}  x${bonusMultiplier}`,
-      ...(mods.length > 0 ? ['LOADOUT', ...mods.map((mod) => mod.text)] : []),
-    ]
-    this.hud.setText(hudLines)
     this.publishHud()
 
     if (this.waveMessageUntil > time) {
@@ -1593,48 +1059,6 @@ export class TankBattleScene extends Phaser.Scene {
     if (this.state === 'playing') {
       this.banner.setText('')
     }
-  }
-
-  private drawHudPanel(
-    lineCount = 2,
-    mods: HudMod[] = [],
-  ) {
-    const width = 166
-    const height = Phaser.Math.Clamp(20 + lineCount * 13, 50, 166)
-    this.hudPanel.clear()
-    this.hudPanel.fillStyle(0x050706, 0.42)
-    this.hudPanel.fillRoundedRect(7, 17, width, height, 6)
-    this.hudPanel.fillStyle(0x17231e, 0.28)
-    this.hudPanel.fillRoundedRect(12, 22, width - 10, 28, 4)
-    this.hudPanel.lineStyle(1, 0xffffff, 0.1)
-    this.hudPanel.strokeRoundedRect(7, 17, width, height, 5)
-    this.hudPanel.lineStyle(2, GAME_CONFIG.colors.xp, 0.64)
-    this.hudPanel.lineBetween(12, 24, 12, 17 + height - 7)
-
-    mods.forEach((mod, index) => {
-      const lineIndex = 4 + index
-      const rowY = 18 + lineIndex * 13
-      this.hudPanel.fillStyle(0x0f1714, 0.68)
-      this.hudPanel.fillRoundedRect(18, rowY + 1, width - 26, 11, 3)
-      this.hudPanel.fillStyle(mod.temporary ? 0xf6d365 : GAME_CONFIG.colors.xp, mod.temporary ? 0.95 : 0.75)
-      this.hudPanel.fillRoundedRect(21, rowY + 4, 5, 5, 2)
-
-      if (!mod.type) {
-        return
-      }
-
-      const cap = this.upgradeCap(mod.type)
-      const level = this.upgradeLevel(mod.type)
-      const pipCount = Math.min(cap, 6)
-      const filledPips = Math.ceil((level / cap) * pipCount)
-      for (let pip = 0; pip < pipCount; pip += 1) {
-        this.hudPanel.fillStyle(
-          pip < filledPips ? GAME_CONFIG.colors.xp : 0x2d3833,
-          pip < filledPips ? 0.95 : 0.85,
-        )
-        this.hudPanel.fillRoundedRect(width - 42 + pip * 6, rowY + 5, 4, 4, 1)
-      }
-    })
   }
 
   private activeHudMods(time: number): HudMod[] {
@@ -1746,9 +1170,7 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private clearObjects() {
-    for (const bullet of this.bullets) {
-      bullet.sprite.destroy()
-    }
+    this.bulletSystem?.clear()
     for (const enemy of this.enemies) {
       enemy.hull.destroy()
       enemy.turret.destroy()
@@ -1762,22 +1184,13 @@ export class TankBattleScene extends Phaser.Scene {
       this.player.turret.destroy()
     }
 
-    this.clearUpgradeObjects()
-    this.clearScreenPanel()
-    this.bullets = []
+    this.upgradeRenderer.clear()
+    this.screenPanel.clear()
     this.enemies = []
     this.waveSpawnQueue = []
     this.nextEnemySpawnAt = 0
     this.pendingWave = null
     this.waveSpawnAt = 0
-  }
-
-  private clearUpgradeObjects() {
-    for (const object of this.upgradeObjects) {
-      object.destroy()
-    }
-    this.upgradeObjects = []
-    this.upgradeCardBounds = []
   }
 
 }
