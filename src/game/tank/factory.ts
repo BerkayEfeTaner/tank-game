@@ -70,12 +70,14 @@ export function createTank(scene: Phaser.Scene, options: CreateTankOptions): Tan
   const hull = scene.add
     .image(options.x, options.y, tankBodyAsset(options.kind, options.enemyType))
     .setDisplaySize(size, size)
+    .setTint(options.hullColor)
   const barrelWidth = options.enemyType === 'boss' ? 17 : options.enemyType === 'sniper' ? 14 : 12
   const barrelHeight = options.enemyType === 'boss' ? 58 : options.enemyType === 'sniper' ? 52 : 44
   const turret = scene.add
     .image(options.x, options.y, tankBarrelAsset(options.kind, options.enemyType))
     .setDisplaySize(barrelWidth, barrelHeight)
     .setOrigin(0.5, 0.78)
+    .setTint(options.turretColor)
   hull.setDepth(5)
   turret.setDepth(6)
   const healthBar = options.kind === 'enemy' ? scene.add.graphics().setDepth(8) : undefined

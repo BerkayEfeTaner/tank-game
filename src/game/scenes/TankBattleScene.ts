@@ -42,6 +42,7 @@ import {
 import { STAT_UPGRADES, createEmptyStatLevels, statUpgradeCost } from '../stats'
 import { GameAudio } from '../systems/audio'
 import type {
+  BossStyle,
   EnemyType,
   GameState,
   PlayerBuffs,
@@ -76,6 +77,22 @@ const WALL_DATA = [
   [500, 395, 260, 34],
   [720, 260, 34, 180],
 ] as const
+
+const BOSS_PROFILES = [
+  { style: 'vanguard', title: 'VANGUARD', hullColor: 0x7a2f45, turretColor: 0xffd166, accent: 0xffd166 },
+  { style: 'artillery', title: 'ARTILLERY', hullColor: 0x304f80, turretColor: 0x8fd0ff, accent: 0x8fd0ff },
+  { style: 'swarm', title: 'SWARM CHIEF', hullColor: 0x4e3a86, turretColor: 0xd6b3ff, accent: 0xd6b3ff },
+  { style: 'warden', title: 'WARDEN', hullColor: 0x33674b, turretColor: 0x9ff0b5, accent: 0x9ff0b5 },
+  { style: 'blitz', title: 'BLITZ CORE', hullColor: 0x7a4a2c, turretColor: 0xffa35f, accent: 0xffa35f },
+] as const
+
+function bossProfileForTier(tier: number) {
+  return BOSS_PROFILES[(tier - 1) % BOSS_PROFILES.length]
+}
+
+function bossProfileForStyle(style?: BossStyle) {
+  return BOSS_PROFILES.find((profile) => profile.style === style) ?? BOSS_PROFILES[0]
+}
 
 export class TankBattleScene extends Phaser.Scene {
   private audio = new GameAudio()
@@ -171,7 +188,7 @@ export class TankBattleScene extends Phaser.Scene {
   }
 
   private pickupCollectRadius() {
-    return this.player.size / 2 + 13 + this.upgradeLevel('pickupRadius') * 18 + this.statLevels.pickupRadius * 12
+    return this.player.size / 2 + 52 + this.upgradeLevel('pickupRadius') * 18 + this.statLevels.pickupRadius * 12
   }
 
   private bossDamageMultiplier() {
@@ -555,14 +572,15 @@ export class TankBattleScene extends Phaser.Scene {
     const stats = ENEMY_STATS[type]
     const clearSpawn = findClearSpawn(spawn[0], spawn[1], tankSizeForType(type), this.walls, this.player)
     const tier = type === 'boss' ? bossTier(waveNumber) : 0
+    const bossProfile = type === 'boss' ? bossProfileForTier(tier) : undefined
 
-    return createTank(this, {
+    const enemy = createTank(this, {
       kind: 'enemy',
       enemyType: type,
       x: clearSpawn.x,
       y: clearSpawn.y,
-      hullColor: stats.hullColor,
-      turretColor: stats.turretColor,
+      hullColor: bossProfile?.hullColor ?? stats.hullColor,
+      turretColor: bossProfile?.turretColor ?? stats.turretColor,
       maxHealth: type === 'boss'
         ? stats.health + tier * 10
         : stats.health + Math.floor(this.waveIndex / 3),
@@ -581,6 +599,15 @@ export class TankBattleScene extends Phaser.Scene {
       accuracy: stats.accuracy,
       separationRadius: stats.separationRadius,
     })
+
+    if (bossProfile) {
+      enemy.bossStyle = bossProfile.style
+      enemy.nextAbilityAt = this.time.now + 2400
+      spawnBlastRing(this, enemy.x, enemy.y, 88, bossProfile.accent)
+      spawnFloatingText(this, enemy.x, enemy.y - enemy.size / 2 - 22, bossProfile.title, bossProfile.accent)
+    }
+
+    return enemy
   }
 
   private movePlayer(delta: number, _time: number) {
@@ -617,6 +644,9 @@ export class TankBattleScene extends Phaser.Scene {
       this.moveEnemy(enemy, delta, time)
       enemy.turretAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y)
       syncTankVisuals(enemy)
+      if (enemy.enemyType === 'boss') {
+        this.updateBossState(enemy, time)
+      }
 
       const fireDelay = this.buffs.freezeUntil > time ? enemy.fireDelay * 2 : enemy.fireDelay
       if (time - enemy.lastFire > fireDelay && !lineBlocked(enemy, this.player, this.walls)) {
@@ -629,45 +659,105 @@ export class TankBattleScene extends Phaser.Scene {
     }
   }
 
+  private updateBossState(enemy: Tank, time: number) {
+    const profile = bossProfileForStyle(enemy.bossStyle)
+    const tier = bossTier(this.waveIndex + 1)
+
+    if (!enemy.enraged && enemy.health <= enemy.maxHealth * 0.5) {
+      enemy.enraged = true
+      enemy.speed += 10
+      enemy.fireDelay = Math.max(580, enemy.fireDelay * 0.84)
+      spawnBlastRing(this, enemy.x, enemy.y, 120, profile.accent)
+      spawnFloatingText(this, enemy.x, enemy.y - enemy.size / 2 - 26, 'ENRAGED', profile.accent)
+      this.cameras.main.shake(90, 0.0035)
+    }
+
+    if (time < (enemy.nextAbilityAt ?? 0)) {
+      return
+    }
+
+    enemy.nextAbilityAt = time + Math.max(3300, 6200 - tier * 260)
+    if (enemy.bossStyle === 'warden') {
+      const healAmount = Math.ceil(enemy.maxHealth * 0.05)
+      enemy.health = Math.min(enemy.maxHealth, enemy.health + healAmount)
+      spawnBlastRing(this, enemy.x, enemy.y, 96, profile.accent)
+      spawnFloatingText(this, enemy.x, enemy.y - enemy.size / 2 - 22, `+${healAmount} REPAIR`, profile.accent)
+      syncTankVisuals(enemy)
+      return
+    }
+
+    if (enemy.bossStyle === 'blitz') {
+      enemy.moveAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y)
+      enemy.rethinkAt = time + 520
+      spawnBlastRing(this, enemy.x, enemy.y, 72, profile.accent)
+      spawnFloatingText(this, enemy.x, enemy.y - enemy.size / 2 - 22, 'DASH', profile.accent)
+      return
+    }
+
+    if (enemy.bossStyle === 'artillery' || enemy.bossStyle === 'swarm') {
+      spawnBlastRing(this, enemy.x, enemy.y, enemy.bossStyle === 'swarm' ? 110 : 84, profile.accent)
+    }
+  }
+
   private fireBossPattern(enemy: Tank, time: number) {
     const baseAngle = enemy.turretAngle
     const tier = bossTier(this.waveIndex + 1)
-    const pattern = Math.floor(time / 2200) % (tier >= 3 ? 4 : 3)
+    const profile = bossProfileForStyle(enemy.bossStyle)
+    const style = enemy.bossStyle ?? 'vanguard'
 
-    if (tier >= 2 && pattern === 1) {
-      spawnBlastRing(this,enemy.x, enemy.y, 92, 0xffd166)
-      const bulletCount = tier >= 4 ? 8 : 6
+    if (style === 'swarm') {
+      const bulletCount = tier >= 4 ? 10 : 8
+      spawnBlastRing(this, enemy.x, enemy.y, 94, profile.accent)
       for (let index = 0; index < bulletCount; index += 1) {
         this.bulletSystem.fire(enemy, false, time, {
-          angleOverride: baseAngle + (Math.PI * 2 * index) / bulletCount,
+          angleOverride: baseAngle + (Math.PI * 2 * index) / bulletCount + time * 0.00025,
           playSound: index === 0,
+          bulletTint: profile.accent,
         })
       }
       return
     }
 
-    if (tier >= 3 && pattern === 2) {
-      spawnBlastRing(this,enemy.x, enemy.y, 68, 0xff7b72)
-      ;[-0.16, 0, 0.16].forEach((offset, index) => {
+    if (style === 'artillery') {
+      spawnBlastRing(this, enemy.x, enemy.y, 74, profile.accent)
+      const angles = tier >= 3 ? [-0.54, -0.24, 0, 0.24, 0.54] : [-0.36, 0, 0.36]
+      angles.forEach((offset, index) => {
         this.bulletSystem.fire(enemy, false, time, {
           angleOverride: baseAngle + offset,
-          lateralOffset: 18 * (index - 1),
+          damageOverride: enemy.damage + 1,
           playSound: index === 0,
+          bulletTint: profile.accent,
         })
       })
       return
     }
 
-    const angles = tier >= 4
-      ? [-0.42, -0.21, 0, 0.21, 0.42]
-      : tier >= 2
-        ? [-0.3, 0, 0.3]
-        : [-0.18, 0, 0.18]
+    if (style === 'warden') {
+      spawnBlastRing(this, enemy.x, enemy.y, 78, profile.accent)
+      ;[0, Math.PI / 2, Math.PI, -Math.PI / 2].forEach((offset, index) => {
+        this.bulletSystem.fire(enemy, false, time, {
+          angleOverride: baseAngle + offset,
+          playSound: index === 0,
+          bulletTint: profile.accent,
+        })
+      })
+      return
+    }
+
+    const angles = style === 'blitz'
+      ? [-0.1, 0, 0.1]
+      : tier >= 4
+        ? [-0.42, -0.21, 0, 0.21, 0.42]
+        : tier >= 2
+          ? [-0.3, 0, 0.3]
+          : [-0.18, 0, 0.18]
 
     angles.forEach((offset, index) => {
       this.bulletSystem.fire(enemy, false, time, {
         angleOverride: baseAngle + offset,
+        lateralOffset: style === 'blitz' ? 16 * (index - 1) : 0,
         playSound: index === 0,
+        bulletTint: profile.accent,
       })
     })
   }
@@ -783,9 +873,12 @@ export class TankBattleScene extends Phaser.Scene {
     const enemy = this.enemies[index]
     const finalDamage = effectiveDamageOnEnemy(damage, enemy, critical, this.bossDamageMultiplier())
     enemy.health -= finalDamage
-    flashTank(this,enemy, 0xff9b72)
-    spawnHitSpark(this,enemy.x, enemy.y)
-    spawnDamageNumber(this,enemy.x, enemy.y - enemy.size / 2, finalDamage, critical)
+    flashTank(this, enemy, 0xff9b72)
+    spawnHitSpark(this, enemy.x, enemy.y)
+    spawnDamageNumber(this, enemy.x, enemy.y - enemy.size / 2, finalDamage, critical)
+    if (critical) {
+      this.cameras.main.shake(38, 0.002)
+    }
     this.audio.hit()
 
     if (enemy.health > 0) {
@@ -793,8 +886,13 @@ export class TankBattleScene extends Phaser.Scene {
       return
     }
 
-    spawnExplosion(this,enemy.x, enemy.y)
+    spawnExplosion(this, enemy.x, enemy.y)
     this.cameras.main.shake(enemy.enemyType === 'boss' ? 160 : 45, enemy.enemyType === 'boss' ? 0.006 : 0.002)
+    if (enemy.enemyType === 'boss') {
+      const profile = bossProfileForStyle(enemy.bossStyle)
+      spawnBlastRing(this, enemy.x, enemy.y, 142, profile.accent)
+      spawnFloatingText(this, enemy.x, enemy.y - enemy.size / 2 - 30, 'BOSS DOWN', profile.accent)
+    }
     this.powerUpSystem.maybeDrop(enemy.x, enemy.y)
     this.pickupSystem.drop('xp', enemy.x, enemy.y, xpForEnemy(enemy, this.waveIndex, this.buffs, this.time.now))
     this.pickupSystem.drop(

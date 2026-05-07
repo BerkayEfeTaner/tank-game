@@ -3,6 +3,7 @@ import type Phaser from 'phaser'
 export type GameState = 'menu' | 'playing' | 'paused' | 'upgrade' | 'won' | 'lost'
 export type TankKind = 'player' | 'enemy'
 export type EnemyType = 'scout' | 'heavy' | 'sniper' | 'charger' | 'bomber' | 'shield' | 'boss'
+export type BossStyle = 'vanguard' | 'artillery' | 'swarm' | 'warden' | 'blitz'
 export type PowerUpType = 'nuke' | 'magnet' | 'freeze' | 'doubleGold' | 'doubleXp' | 'repair' | 'overdrive'
 export type UpgradeRarity = 'common' | 'rare' | 'epic'
 export type UpgradeType =
@@ -57,6 +58,9 @@ export type Tank = {
   accuracy: number
   separationRadius: number
   strafeDirection: -1 | 1
+  bossStyle?: BossStyle
+  nextAbilityAt?: number
+  enraged?: boolean
   healthBar?: Phaser.GameObjects.Graphics
 }
 
@@ -85,6 +89,7 @@ export type PickupDrop = {
   value: number
   sprite: Phaser.GameObjects.Arc
   label: Phaser.GameObjects.Text
+  attracting?: boolean
 }
 
 export type Mine = {

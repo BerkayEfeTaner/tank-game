@@ -24,6 +24,11 @@ export function chooseEnemyMove(
     return
   }
 
+  if (enemy.enemyType === 'boss') {
+    chooseBossMove(enemy, angleToPlayer, distanceToPlayer, time)
+    return
+  }
+
   if (enemy.enemyType === 'charger') {
     enemy.moveAngle = distanceToPlayer < 78 ? angleToPlayer + Math.PI : angleToPlayer
     enemy.rethinkAt = time + Phaser.Math.Between(90, 150)
@@ -74,6 +79,46 @@ export function chooseEnemyMove(
         ? -1
         : 1
   enemy.moveAngle = angleToPlayer + (Math.PI / 2) * enemy.strafeDirection
+}
+
+function chooseBossMove(enemy: Tank, angleToPlayer: number, distanceToPlayer: number, time: number) {
+  const style = enemy.bossStyle ?? 'vanguard'
+  const strafeAngle = angleToPlayer + (Math.PI / 2) * enemy.strafeDirection
+  const flipStrafe = Phaser.Math.Between(0, 100) < 16
+  if (flipStrafe) {
+    enemy.strafeDirection = enemy.strafeDirection === 1 ? -1 : 1
+  }
+
+  if (style === 'artillery') {
+    enemy.rethinkAt = time + Phaser.Math.Between(240, 380)
+    enemy.moveAngle = distanceToPlayer < enemy.preferredRange - 70 ? angleToPlayer + Math.PI : strafeAngle
+    return
+  }
+
+  if (style === 'swarm') {
+    enemy.rethinkAt = time + Phaser.Math.Between(100, 180)
+    enemy.moveAngle = distanceToPlayer > enemy.preferredRange - 25 ? angleToPlayer : strafeAngle
+    return
+  }
+
+  if (style === 'warden') {
+    enemy.rethinkAt = time + Phaser.Math.Between(260, 430)
+    enemy.moveAngle = distanceToPlayer > enemy.preferredRange + 45 ? angleToPlayer : strafeAngle
+    return
+  }
+
+  if (style === 'blitz') {
+    enemy.rethinkAt = time + Phaser.Math.Between(80, 140)
+    enemy.moveAngle = distanceToPlayer > 118 ? angleToPlayer : strafeAngle
+    return
+  }
+
+  enemy.rethinkAt = time + Phaser.Math.Between(150, 260)
+  if (distanceToPlayer > enemy.preferredRange + 20) {
+    enemy.moveAngle = angleToPlayer
+    return
+  }
+  enemy.moveAngle = distanceToPlayer < enemy.preferredRange - 55 ? angleToPlayer + Math.PI : strafeAngle
 }
 
 export function findPressureAngle(

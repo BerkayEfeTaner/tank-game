@@ -97,6 +97,7 @@ export class PickupSystem {
   }
 
   update(player: Tank, radius: number, onCollect: (pickup: PickupDrop) => void) {
+    const collectDistance = player.size / 2 + 11
     for (let index = this.pickups.length - 1; index >= 0; index -= 1) {
       const pickup = this.pickups[index]
       const distance = Phaser.Math.Distance.Between(
@@ -108,8 +109,36 @@ export class PickupSystem {
       if (distance > radius) {
         continue
       }
-      onCollect(pickup)
+      if (distance <= collectDistance) {
+        onCollect(pickup)
+        continue
+      }
+      this.pullPickupToward(pickup, player, distance, radius)
     }
+  }
+
+  private pullPickupToward(pickup: PickupDrop, player: Tank, distance: number, radius: number) {
+    if (!pickup.attracting) {
+      pickup.attracting = true
+      this.scene.tweens.killTweensOf([pickup.sprite, pickup.label])
+      this.scene.tweens.add({
+        targets: [pickup.sprite, pickup.label],
+        scale: 1.16,
+        duration: 130,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      })
+    }
+
+    const pullStrength = Phaser.Math.Clamp(1 - distance / radius, 0.12, 0.55)
+    const step = Math.min(distance, 3.5 + pullStrength * 13)
+    const angle = Phaser.Math.Angle.Between(pickup.sprite.x, pickup.sprite.y, player.x, player.y)
+    const nextX = pickup.sprite.x + Math.cos(angle) * step
+    const nextY = pickup.sprite.y + Math.sin(angle) * step
+
+    pickup.sprite.setPosition(nextX, nextY)
+    pickup.label.setPosition(nextX, nextY)
   }
 
   remove(pickup: PickupDrop) {
@@ -117,6 +146,7 @@ export class PickupSystem {
     if (index < 0) {
       return false
     }
+    this.scene.tweens.killTweensOf([pickup.sprite, pickup.label])
     pickup.sprite.destroy()
     pickup.label.destroy()
     this.pickups.splice(index, 1)
@@ -126,6 +156,7 @@ export class PickupSystem {
   magnetTo(player: Tank, onCollect: (pickup: PickupDrop) => void) {
     const snapshot = [...this.pickups]
     for (const pickup of snapshot) {
+      pickup.attracting = true
       this.scene.tweens.killTweensOf([pickup.sprite, pickup.label])
       this.scene.tweens.add({
         targets: [pickup.sprite, pickup.label],
@@ -140,6 +171,7 @@ export class PickupSystem {
 
   clear() {
     for (const pickup of this.pickups) {
+      this.scene.tweens.killTweensOf([pickup.sprite, pickup.label])
       pickup.sprite.destroy()
       pickup.label.destroy()
     }

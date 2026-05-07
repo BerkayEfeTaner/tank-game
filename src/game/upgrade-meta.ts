@@ -61,5 +61,10 @@ export function upgradeImpact(type: UpgradeType): string {
   if (type === 'tripleShot') return '3-WAY'
   if (type === 'critChance') return '+CRIT %'
   if (type === 'critDamage') return '+CRIT DMG'
-  return '+XP'
+  if (type === 'xpBoost') return '+XP GAIN'
+  if (type === 'piercingShell') return '+PIERCE'
+  if (type === 'explosiveShell') return '+SPLASH'
+  if (type === 'pickupRadius') return '+MAGNET'
+  if (type === 'bossDamage') return '+BOSS DMG'
+  return '+POWER'
 }

@@ -12,6 +12,7 @@ export type FireOptions = {
   playSound?: boolean
   damageOverride?: number
   critical?: boolean
+  bulletTint?: number
 }
 
 export type BulletHitContext = {
@@ -59,6 +60,8 @@ export class BulletSystem {
       .setDepth(4)
     if (critical) {
       sprite.setTint(0xf6d365)
+    } else if (options.bulletTint !== undefined) {
+      sprite.setTint(options.bulletTint)
     }
     sprite.rotation = angle + TANK_SPRITE_ROTATION_OFFSET
     const velocity = new Phaser.Math.Vector2(
