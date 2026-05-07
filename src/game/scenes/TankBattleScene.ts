@@ -420,6 +420,8 @@ export class TankBattleScene extends Phaser.Scene {
       if (safe.x !== this.player.x || safe.y !== this.player.y) {
         this.player.x = safe.x
         this.player.y = safe.y
+        this.player.hull.setPosition(safe.x, safe.y)
+        this.player.turret.setPosition(safe.x, safe.y)
       }
     }
   }

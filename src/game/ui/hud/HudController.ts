@@ -135,11 +135,9 @@ function createChipElement(mod: HudMod) {
   }
 
   if (mod.type && UPGRADE_ICON_URL[mod.type]) {
-    const icon = document.createElement('img')
+    const icon = document.createElement('span')
     icon.className = 'hud-chip__icon'
-    icon.src = UPGRADE_ICON_URL[mod.type]
-    icon.alt = ''
-    icon.draggable = false
+    icon.style.setProperty('--icon-url', `url('${UPGRADE_ICON_URL[mod.type]}')`)
     chip.appendChild(icon)
   } else {
     const abbr = document.createElement('span')
