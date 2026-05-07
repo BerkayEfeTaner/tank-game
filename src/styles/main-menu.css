@@ -360,10 +360,12 @@
 }
 
 .menu-loadout__tank {
+  position: relative;
   display: grid;
   grid-template-columns: 104px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
+  width: 100%;
   min-width: 0;
   padding: 12px;
   border: 1px solid rgba(244, 239, 230, 0.06);
@@ -371,6 +373,101 @@
   background:
     linear-gradient(90deg, rgba(116, 238, 181, 0.08), transparent 42%),
     rgba(3, 6, 5, 0.54);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  overflow: hidden;
+  text-align: left;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.menu-loadout__tank > * {
+  position: relative;
+  z-index: 1;
+}
+
+.menu-loadout__tank.is-active {
+  border-color: rgba(116, 238, 181, 0.62);
+  animation: activeClassPulse 2.4s ease-in-out infinite;
+  box-shadow:
+    inset 3px 0 0 #74eeb5,
+    inset 0 0 0 1px rgba(116, 238, 181, 0.08),
+    0 0 18px rgba(116, 238, 181, 0.08);
+}
+
+.menu-loadout__tank.is-locked {
+  border-color: rgba(246, 211, 101, 0.58);
+  background:
+    linear-gradient(90deg, rgba(246, 211, 101, 0.13), transparent 48%),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(246, 211, 101, 0.08) 0,
+      rgba(246, 211, 101, 0.08) 8px,
+      transparent 8px,
+      transparent 18px
+    ),
+    rgba(10, 8, 4, 0.82);
+  box-shadow:
+    inset 3px 0 0 rgba(246, 211, 101, 0.8),
+    inset 0 0 0 1px rgba(246, 211, 101, 0.08),
+    0 0 18px rgba(246, 211, 101, 0.08);
+}
+
+.menu-loadout__tank.is-locked::after {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 0;
+  border: 1px solid rgba(246, 211, 101, 0.24);
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(246, 211, 101, 0.42);
+  content: "LOCKED";
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.menu-loadout__tank.is-locked img {
+  opacity: 0.72;
+  filter: grayscale(0.9) brightness(0.62) contrast(1.08) drop-shadow(0 10px 16px rgba(0, 0, 0, 0.34));
+}
+
+.menu-loadout__tank:hover,
+.menu-loadout__tank:focus-visible {
+  border-color: rgba(116, 238, 181, 0.52);
+  background:
+    linear-gradient(90deg, rgba(116, 238, 181, 0.14), transparent 46%),
+    rgba(3, 6, 5, 0.66);
+  box-shadow: inset 0 0 0 1px rgba(116, 238, 181, 0.08);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.menu-loadout__tank.is-locked:hover,
+.menu-loadout__tank.is-locked:focus-visible {
+  border-color: rgba(246, 211, 101, 0.82);
+  background:
+    linear-gradient(90deg, rgba(246, 211, 101, 0.18), transparent 48%),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(246, 211, 101, 0.1) 0,
+      rgba(246, 211, 101, 0.1) 8px,
+      transparent 8px,
+      transparent 18px
+    ),
+    rgba(13, 10, 4, 0.9);
+  box-shadow:
+    inset 3px 0 0 #f6d365,
+    inset 0 0 0 1px rgba(246, 211, 101, 0.12),
+    0 0 24px rgba(246, 211, 101, 0.12);
+}
+
+.menu-loadout__tank:disabled {
+  cursor: default;
+  transform: none;
 }
 
 .menu-loadout__tank img {
@@ -379,16 +476,20 @@
   filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.34));
 }
 
-.menu-loadout__tank div {
+.menu-loadout__tank-copy {
   min-width: 0;
   display: grid;
   gap: 4px;
 }
 
-.menu-loadout__tank span {
+.menu-loadout__tank-copy > span:not(.menu-loadout__badges) {
   color: #74eeb5;
   font-size: 13px;
   font-weight: 800;
+}
+
+.menu-loadout__tank.is-locked .menu-loadout__tank-copy > span:not(.menu-loadout__badges) {
+  color: #f6d365;
 }
 
 .menu-loadout__tank strong,
@@ -409,9 +510,61 @@
   text-transform: uppercase;
 }
 
+.menu-loadout__tank.is-locked strong {
+  color: rgba(244, 239, 230, 0.84);
+}
+
+.menu-loadout__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.menu-loadout__badges small {
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid rgba(116, 238, 181, 0.24);
+  border-radius: 4px;
+  padding: 3px 6px;
+  background: rgba(116, 238, 181, 0.08);
+  color: #74eeb5;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.menu-loadout__tank.is-locked .menu-loadout__badges small {
+  border-color: rgba(246, 211, 101, 0.26);
+  background: rgba(246, 211, 101, 0.08);
+  color: #f6d365;
+}
+
+.menu-brief {
+  border-top: 1px solid rgba(244, 239, 230, 0.08);
+  padding-top: 10px;
+}
+
 .menu-loadout__bars {
   display: grid;
   gap: 8px;
+}
+
+@keyframes activeClassPulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 3px 0 0 #74eeb5,
+      inset 0 0 0 1px rgba(116, 238, 181, 0.08),
+      0 0 12px rgba(116, 238, 181, 0.06);
+  }
+
+  50% {
+    box-shadow:
+      inset 3px 0 0 #74eeb5,
+      inset 0 0 0 1px rgba(116, 238, 181, 0.14),
+      0 0 24px rgba(116, 238, 181, 0.16);
+  }
 }
 
 .menu-loadout__bars div {
