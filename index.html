@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tank Game</title>
+  </head>
+  <body>
+    <main id="game-shell">
+      <aside id="side-hud" aria-label="Game status">
+        <div class="hud-head">
+          <div>
+            <span class="hud-kicker">Mission</span>
+            <strong>Tank OS</strong>
+          </div>
+          <span class="hud-live">Live</span>
+        </div>
+        <div class="hud-score">
+          <span>Score</span>
+          <strong data-hud="score">0</strong>
+        </div>
+        <div class="hud-xp">
+          <div class="hud-xp-track" aria-hidden="true">
+            <span data-hud="xp-bar"></span>
+          </div>
+          <div class="hud-xp-copy">
+            <span>Level</span>
+            <strong data-hud="level">1</strong>
+            <small data-hud="xp-text">0 / 120 XP</small>
+          </div>
+        </div>
+        <div class="hud-grid">
+          <div>
+            <span>Best</span>
+            <strong data-hud="best">0</strong>
+          </div>
+          <div>
+            <span>Wave</span>
+            <strong data-hud="wave">1</strong>
+          </div>
+        </div>
+        <div class="hud-row">
+          <span>Multiplier</span>
+          <strong data-hud="multiplier">x1</strong>
+        </div>
+        <div class="hud-row">
+          <span>Zone</span>
+          <strong data-hud="zone">Iron Yard</strong>
+        </div>
+        <div class="hud-gold">
+          <span>Gold</span>
+          <strong data-hud="gold">0</strong>
+        </div>
+        <button class="hud-shop-toggle" type="button" data-shop-toggle aria-expanded="false">
+          <span>Store</span>
+          <strong>Upgrades</strong>
+        </button>
+        <div class="hud-mods" data-hud="mods"></div>
+      </aside>
+      <section id="game-stage" aria-label="Battlefield">
+        <div id="top-vitals" aria-label="Player armor">
+          <span>Armor</span>
+          <div class="health-meter" aria-hidden="true">
+            <span data-hud="hp-bar"></span>
+          </div>
+          <strong data-hud="hp-top">0/0</strong>
+        </div>
+        <div id="app"></div>
+      </section>
+      <div class="shop-modal" data-shop-panel hidden role="dialog" aria-modal="true" aria-label="Permanent gold upgrades">
+        <button class="shop-modal__backdrop" type="button" data-shop-close aria-label="Close store"></button>
+        <div class="shop-modal__panel">
+          <div class="hud-shop">
+            <div class="hud-shop-head">
+              <span>Permanent Store</span>
+              <button type="button" data-shop-close aria-label="Close store">x</button>
+            </div>
+            <button type="button" data-shop="maxHealth">
+              <span>Max HP</span>
+              <strong data-shop-level="maxHealth">0</strong>
+              <small data-shop-cost="maxHealth">60g</small>
+            </button>
+            <button type="button" data-shop="damage">
+              <span>Damage</span>
+              <strong data-shop-level="damage">0</strong>
+              <small data-shop-cost="damage">80g</small>
+            </button>
+            <button type="button" data-shop="fireRate">
+              <span>Fire Rate</span>
+              <strong data-shop-level="fireRate">0</strong>
+              <small data-shop-cost="fireRate">70g</small>
+            </button>
+            <button type="button" data-shop="critChance">
+              <span>Crit %</span>
+              <strong data-shop-level="critChance">0</strong>
+              <small data-shop-cost="critChance">90g</small>
+            </button>
+            <button type="button" data-shop="critDamage">
+              <span>Crit DMG</span>
+              <strong data-shop-level="critDamage">0</strong>
+              <small data-shop-cost="critDamage">100g</small>
+            </button>
+            <button type="button" data-shop="moveSpeed">
+              <span>Move Speed</span>
+              <strong data-shop-level="moveSpeed">0</strong>
+              <small data-shop-cost="moveSpeed">85g</small>
+            </button>
+            <button type="button" data-shop="pickupRadius">
+              <span>Pickup Range</span>
+              <strong data-shop-level="pickupRadius">0</strong>
+              <small data-shop-cost="pickupRadius">75g</small>
+            </button>
+            <button type="button" data-shop="armorRegen">
+              <span>Armor Regen</span>
+              <strong data-shop-level="armorRegen">0</strong>
+              <small data-shop-cost="armorRegen">120g</small>
+            </button>
+            <button type="button" data-shop="bossDamage">
+              <span>Boss DMG</span>
+              <strong data-shop-level="bossDamage">0</strong>
+              <small data-shop-cost="bossDamage">130g</small>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

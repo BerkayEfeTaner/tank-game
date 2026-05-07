@@ -1,0 +1,578 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  overflow: hidden;
+  background: #111417;
+  color: #f4efe6;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+}
+
+#game-shell {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  box-sizing: border-box;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(135deg, #0d1110 0%, #171d1a 48%, #101312 100%);
+  background-size: 32px 32px, 32px 32px, auto;
+}
+
+#game-stage {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  gap: 10px;
+}
+
+#top-vitals {
+  align-self: end;
+  justify-self: center;
+  width: min(520px, 82%);
+  min-width: 280px;
+  height: 34px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  border: 1px solid rgba(116, 238, 181, 0.26);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: rgba(3, 6, 5, 0.76);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+#top-vitals > span,
+.hud-xp-copy span,
+.hud-xp-copy small {
+  color: rgba(244, 239, 230, 0.58);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#top-vitals strong {
+  min-width: 46px;
+  color: #fff8dd;
+  font-size: 13px;
+  text-align: right;
+}
+
+.health-meter {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(244, 239, 230, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(216, 247, 222, 0.1);
+}
+
+.health-meter span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #74eeb5, #f6d365);
+  box-shadow: 0 0 16px rgba(116, 238, 181, 0.28);
+  transition: width 160ms ease;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+}
+
+#side-hud {
+  align-self: center;
+  width: 100%;
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  box-sizing: border-box;
+  border: 1px solid rgba(116, 238, 181, 0.24);
+  border-radius: 10px;
+  padding: 12px;
+  background:
+    linear-gradient(180deg, rgba(23, 35, 30, 0.96), rgba(6, 9, 8, 0.91)),
+    radial-gradient(circle at 10% 0%, rgba(116, 238, 181, 0.2), transparent 36%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 18px 40px rgba(0, 0, 0, 0.34);
+}
+
+.hud-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.hud-head div {
+  display: grid;
+  gap: 2px;
+}
+
+.hud-head strong {
+  color: #f4efe6;
+  font-size: 18px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.hud-kicker,
+.hud-row span,
+.hud-grid span,
+.hud-score span,
+.hud-xp-copy span {
+  color: rgba(244, 239, 230, 0.58);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hud-kicker {
+  color: #74eeb5;
+}
+
+.hud-live {
+  border: 1px solid rgba(116, 238, 181, 0.42);
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: rgba(116, 238, 181, 0.11);
+  color: #74eeb5;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.hud-score {
+  display: grid;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(90deg, rgba(116, 238, 181, 0.13), transparent 70%),
+    rgba(3, 6, 5, 0.46);
+  border-bottom: 1px solid rgba(244, 239, 230, 0.1);
+}
+
+.hud-score strong {
+  color: #fff8dd;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.hud-xp {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 152px;
+  margin-top: 10px;
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(116, 238, 181, 0.1), transparent 82%),
+    rgba(3, 6, 5, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.hud-xp-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(244, 239, 230, 0.11);
+  box-shadow: inset 0 0 0 1px rgba(216, 247, 222, 0.1);
+}
+
+.hud-xp-track span {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 0%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #f6d365, #74eeb5);
+  box-shadow: 0 0 16px rgba(116, 238, 181, 0.32);
+  transition: height 180ms ease;
+}
+
+.hud-xp-copy {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.hud-xp-copy strong {
+  color: #fff8dd;
+  font-size: 34px;
+  line-height: 0.95;
+}
+
+.hud-xp-copy small {
+  overflow: hidden;
+  color: #74eeb5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.hud-grid div,
+.hud-row {
+  min-width: 0;
+  border-radius: 7px;
+  padding: 8px;
+  background: rgba(3, 6, 5, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.hud-grid div {
+  display: grid;
+  gap: 2px;
+}
+
+.hud-grid strong,
+.hud-row strong {
+  color: #f4efe6;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.hud-row strong {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-gold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background:
+    linear-gradient(90deg, rgba(246, 211, 101, 0.18), transparent 72%),
+    rgba(3, 6, 5, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(246, 211, 101, 0.16);
+}
+
+.hud-gold span,
+.hud-shop-toggle span,
+.hud-shop-head span,
+.hud-shop span,
+.hud-shop small {
+  color: rgba(244, 239, 230, 0.6);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hud-gold strong {
+  color: #f6d365;
+  font-size: 18px;
+}
+
+.hud-shop-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  border: 1px solid rgba(246, 211, 101, 0.32);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background:
+    linear-gradient(90deg, rgba(246, 211, 101, 0.16), transparent 68%),
+    rgba(3, 6, 5, 0.62);
+  color: #f4efe6;
+  cursor: pointer;
+  font: inherit;
+}
+
+.hud-shop-toggle:hover,
+.hud-shop-toggle:focus-visible {
+  border-color: rgba(246, 211, 101, 0.72);
+  outline: none;
+}
+
+.hud-shop-toggle strong {
+  color: #f6d365;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.hud-shop {
+  display: grid;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(116, 238, 181, 0.08), transparent 38%),
+    rgba(3, 6, 5, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(246, 211, 101, 0.22), 0 24px 70px rgba(0, 0, 0, 0.46);
+}
+
+.shop-modal[hidden] {
+  display: none;
+}
+
+.shop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.shop-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(3, 6, 5, 0.54);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.shop-modal__panel {
+  position: relative;
+  width: min(520px, calc(100vw - 32px));
+}
+
+.hud-shop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 2px 8px;
+}
+
+.hud-shop-head button {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(244, 239, 230, 0.18);
+  border-radius: 6px;
+  padding: 0;
+  background: rgba(244, 239, 230, 0.06);
+  color: #f4efe6;
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.hud-shop > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  min-height: 48px;
+  border: 1px solid rgba(116, 238, 181, 0.16);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background:
+    linear-gradient(90deg, rgba(116, 238, 181, 0.08), transparent 70%),
+    rgba(3, 6, 5, 0.5);
+  color: #f4efe6;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.hud-shop > button:hover:not(:disabled) {
+  border-color: rgba(246, 211, 101, 0.54);
+  background:
+    linear-gradient(90deg, rgba(246, 211, 101, 0.14), transparent 72%),
+    rgba(3, 6, 5, 0.62);
+}
+
+.hud-shop > button:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.hud-shop > button strong {
+  color: #74eeb5;
+  font-size: 11px;
+  text-align: right;
+}
+
+.hud-shop > button small {
+  grid-column: 1 / -1;
+  color: #f6d365;
+}
+
+.hud-mods {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(244, 239, 230, 0.1);
+}
+
+.hud-mod {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 26px;
+  border-radius: 7px;
+  padding: 5px 7px;
+  background:
+    linear-gradient(90deg, rgba(116, 238, 181, 0.09), transparent 70%),
+    rgba(3, 6, 5, 0.42);
+  color: #f4efe6;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.hud-mod::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #74eeb5;
+  box-shadow: 0 0 10px rgba(116, 238, 181, 0.45);
+}
+
+.hud-mod--temporary::before {
+  background: #f6d365;
+  box-shadow: 0 0 10px rgba(246, 211, 101, 0.45);
+}
+
+.hud-pips {
+  display: flex;
+  gap: 2px;
+}
+
+.hud-pip {
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+  background: rgba(244, 239, 230, 0.16);
+}
+
+.hud-pip.is-filled {
+  background: #74eeb5;
+}
+
+.hud-mod.is-maxed {
+  color: #fff8dd;
+  background:
+    linear-gradient(90deg, rgba(246, 211, 101, 0.14), transparent 72%),
+    rgba(3, 6, 5, 0.46);
+}
+
+.hud-mod.is-maxed::before,
+.hud-mod.is-maxed .hud-pip.is-filled {
+  background: #f6d365;
+}
+
+canvas {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 72px);
+  border: 1px solid rgba(216, 247, 222, 0.14);
+  border-radius: 12px;
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.58),
+    0 0 0 1px rgba(0, 0, 0, 0.38);
+}
+
+@media (max-width: 900px) {
+  #game-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  #game-stage {
+    grid-row: 1;
+    grid-template-rows: 30px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  #top-vitals {
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    padding: 6px 8px;
+  }
+
+  #side-hud {
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 0.9fr;
+    gap: 8px 10px;
+    max-height: 34vh;
+    padding: 9px;
+  }
+
+  .hud-kicker,
+  .hud-head,
+  .hud-row:nth-of-type(2),
+  .hud-mods {
+    display: none;
+  }
+
+  .hud-xp {
+    min-height: auto;
+    margin: 0;
+    padding: 8px;
+  }
+
+  .hud-score,
+  .hud-grid {
+    margin: 0;
+  }
+
+  canvas {
+    max-height: calc(100vh - 148px);
+  }
+}
