@@ -333,12 +333,31 @@ function drawIcon(
 ): Phaser.GameObjects.GameObject[] {
   const objects: Phaser.GameObjects.GameObject[] = []
   const frame = scene.add.graphics().setDepth(68)
-  frame.fillStyle(0x050706, 0.62)
-  frame.fillRoundedRect(x - 41, y - 35, 82, 70, 6)
-  frame.lineStyle(1, color, 0.55)
-  frame.strokeRoundedRect(x - 41, y - 35, 82, 70, 6)
-  frame.fillStyle(color, 0.16)
-  frame.fillCircle(x, y, 28)
+  // Outer glow halo
+  frame.fillStyle(color, 0.08)
+  frame.fillRoundedRect(x - 52, y - 42, 104, 84, 10)
+  // Plate background
+  frame.fillStyle(0x050706, 0.78)
+  frame.fillRoundedRect(x - 48, y - 38, 96, 76, 8)
+  // Rarity gradient band at top
+  frame.fillStyle(color, 0.22)
+  frame.fillRoundedRect(x - 48, y - 38, 96, 16, 8)
+  // Inner ring
+  frame.lineStyle(1.2, color, 0.7)
+  frame.strokeRoundedRect(x - 48, y - 38, 96, 76, 8)
+  frame.lineStyle(1, 0xffffff, 0.06)
+  frame.strokeRoundedRect(x - 44, y - 34, 88, 68, 6)
+  // Central glow circle
+  frame.fillStyle(color, 0.18)
+  frame.fillCircle(x, y, 32)
+  frame.lineStyle(1.2, color, 0.9)
+  frame.strokeCircle(x, y, 32)
+  // Corner accents
+  frame.fillStyle(color, 0.85)
+  frame.fillCircle(x - 42, y - 32, 2)
+  frame.fillCircle(x + 42, y - 32, 2)
+  frame.fillCircle(x - 42, y + 32, 2)
+  frame.fillCircle(x + 42, y + 32, 2)
   objects.push(frame)
 
   const addIconImage = (key: string, offsetX = 0, offsetY = 0, size = 48, rotation = 0) => {

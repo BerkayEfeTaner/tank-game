@@ -1,5 +1,15 @@
 import Phaser from 'phaser'
-import { GAME_CONFIG, POWER_UP_LABELS } from '../config'
+import { GAME_CONFIG } from '../config'
+
+const POWER_UP_GLYPHS: Record<PowerUpType, string> = {
+  nuke: '☢',
+  magnet: '⊕',
+  freeze: '❄',
+  doubleGold: '⛁',
+  doubleXp: '★',
+  repair: '✚',
+  overdrive: '⚡',
+}
 import { boundsOverlap, tankBounds } from '../tank/collision'
 import type { PowerUp, PowerUpType, Tank } from '../types'
 
@@ -64,23 +74,19 @@ export class PowerUpSystem {
       .setDepth(4)
     sprite.rotation = Math.PI / 4
     const label = this.scene.add
-      .text(x, y - 1, POWER_UP_LABELS[type], {
-        fontFamily: 'Inter, Arial, sans-serif',
-        fontSize: type === 'doubleXp' || type === 'doubleGold' ? '10px' : '12px',
+      .text(x, y, POWER_UP_GLYPHS[type], {
+        fontFamily: 'Apple Color Emoji, Segoe UI Symbol, Symbola, Inter, sans-serif',
+        fontSize: '22px',
         color: '#101411',
         fontStyle: '900',
       })
       .setOrigin(0.5)
       .setDepth(5)
     const subLabel = this.scene.add
-      .text(x, y + 22, powerUpName(type), {
-        fontFamily: 'Inter, Arial, sans-serif',
-        fontSize: '9px',
-        color: '#f4efe6',
-        fontStyle: '900',
-      })
+      .text(x, y, '', { fontSize: '1px' })
       .setOrigin(0.5)
       .setDepth(5)
+      .setVisible(false)
 
     this.scene.tweens.add({
       targets: ring,

@@ -24,6 +24,7 @@ export type HudSnapshot = {
   zone: string
   gold: number
   mods: HudMod[]
+  state: 'menu' | 'playing' | 'paused' | 'upgrade' | 'won' | 'lost'
 }
 
 export type ShopSnapshot = {

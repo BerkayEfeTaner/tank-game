@@ -24,21 +24,21 @@ export type CreateTankOptions = {
 
 export function tankSizeForType(enemyType?: EnemyType) {
   if (enemyType === 'boss') {
-    return 66
+    return 54
   }
   if (enemyType === 'shield') {
-    return 52
+    return 42
   }
   if (enemyType === 'heavy') {
-    return 48
+    return 38
   }
   if (enemyType === 'bomber') {
-    return 44
-  }
-  if (enemyType === 'charger' || enemyType === 'scout') {
     return 36
   }
-  return 42
+  if (enemyType === 'charger' || enemyType === 'scout') {
+    return 28
+  }
+  return 32
 }
 
 export function tankBodyAsset(kind: 'player' | 'enemy', enemyType?: EnemyType) {
@@ -75,8 +75,8 @@ export function createTank(scene: Phaser.Scene, options: CreateTankOptions): Tan
     .image(options.x, options.y, bodyKey)
     .setDisplaySize(size, size)
     .setTint(options.hullColor)
-  const barrelWidth = options.enemyType === 'boss' ? 17 : options.enemyType === 'sniper' ? 14 : 12
-  const barrelHeight = options.enemyType === 'boss' ? 58 : options.enemyType === 'sniper' ? 52 : 44
+  const barrelWidth = options.enemyType === 'boss' ? 14 : options.enemyType === 'sniper' ? 11 : 10
+  const barrelHeight = options.enemyType === 'boss' ? 48 : options.enemyType === 'sniper' ? 42 : 36
   const turret = scene.add
     .image(options.x, options.y, barrelKey)
     .setDisplaySize(barrelWidth, barrelHeight)
