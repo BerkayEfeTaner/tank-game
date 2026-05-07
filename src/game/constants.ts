@@ -1,0 +1,1 @@
+export const TANK_SPRITE_ROTATION_OFFSET = Math.PI / 2
