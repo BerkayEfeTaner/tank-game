@@ -1526,6 +1526,7 @@ export class TankBattleScene extends Phaser.Scene {
       peakWave: this.peakWave,
       activeClassName: cls.name,
       activeClassTagline: cls.tagline,
+      activeClassDescription: cls.description,
       activeClassIconUrl: cls.iconUrl,
       activeSkinName: skin.name,
       activeClassMeters: classProfileMeters(cls),

@@ -43,6 +43,7 @@ export type MenuSnapshot = {
   peakWave: number
   activeClassName: string
   activeClassTagline: string
+  activeClassDescription: string
   activeClassIconUrl: string
   activeSkinName: string
   activeClassMeters: ClassProfileMeters

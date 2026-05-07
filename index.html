@@ -15,11 +15,6 @@
         </div>
         <div class="main-menu__content">
           <section class="menu-hero" aria-label="Game title">
-            <div class="menu-status-strip" aria-label="Hangar status">
-              <span>Hangar online</span>
-              <strong>Endless operation</strong>
-            </div>
-            <span class="menu-eyebrow">Armored survivor command</span>
             <h1>Tank Game</h1>
             <p>Choose a class, tune permanent upgrades, then deploy into escalating tank waves.</p>
             <div class="menu-actions">
@@ -51,14 +46,18 @@
               <button type="button" class="menu-class-picker__arrow" data-menu-class-prev aria-label="Previous class">
                 <span aria-hidden="true">&lsaquo;</span>
               </button>
-              <div class="menu-loadout__tank">
+              <button type="button" class="menu-loadout__tank" data-menu-class-card aria-label="Select next class">
                 <img src="/assets/kenney-tanks/tankBody_blue.png" alt="" data-menu-class-icon />
-                <div>
+                <span class="menu-loadout__tank-copy">
                   <span data-menu-class-tagline>Loadout veteran</span>
                   <strong data-menu-skin>Standard Issue</strong>
                   <em data-menu-class-count>Class 1 / 1</em>
-                </div>
-              </div>
+                  <span class="menu-loadout__badges">
+                    <small data-menu-class-role>Balanced</small>
+                    <small data-menu-class-status>Active</small>
+                  </span>
+                </span>
+              </button>
               <button type="button" class="menu-class-picker__arrow" data-menu-class-next aria-label="Next class">
                 <span aria-hidden="true">&rsaquo;</span>
               </button>
@@ -92,8 +91,8 @@
               </div>
             </div>
             <div class="menu-brief">
-              <span>Next objective</span>
-              <strong>Survive the wave, collect gold, return stronger.</strong>
+              <span>Class perks</span>
+              <strong data-menu-class-description>Balanced profile with bonus gold from every kill.</strong>
             </div>
           </aside>
         </div>
