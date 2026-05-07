@@ -1486,6 +1486,14 @@ export class TankBattleScene extends Phaser.Scene {
 
   private buyStatUpgrade(type: StatUpgradeType) {
     const config = STAT_UPGRADES[type]
+    if (this.statLevels[type] >= config.maxLevel) {
+      if (this.player) {
+        spawnFloatingText(this,this.player.x, this.player.y - 36, 'Maxed', 0xf6d365)
+      }
+      this.publishMenu()
+      return
+    }
+
     const cost = statUpgradeCost(type, this.statLevels[type])
     if (this.gold < cost) {
       if (this.player) {

@@ -2,13 +2,21 @@ import type { StatUpgradeType } from './types'
 
 export const STAT_UPGRADES: Record<
   StatUpgradeType,
-  { title: string; description: string; baseCost: number; costStep: number; iconUrl: string }
+  {
+    title: string
+    description: string
+    baseCost: number
+    costStep: number
+    maxLevel: number
+    iconUrl: string
+  }
 > = {
   maxHealth: {
     title: 'Max HP',
     description: '+1 maximum armor segment',
     baseCost: 60,
     costStep: 38,
+    maxLevel: 10,
     iconUrl: '/assets/kenney-tanks/barricadeMetal.png',
   },
   damage: {
@@ -16,13 +24,15 @@ export const STAT_UPGRADES: Record<
     description: '+1 damage per shell',
     baseCost: 80,
     costStep: 55,
+    maxLevel: 12,
     iconUrl: '/assets/kenney-tanks/bulletBlue3_outline.png',
   },
   fireRate: {
     title: 'Fire Rate',
-    description: '−12 ms reload window',
+    description: '-12 ms reload window',
     baseCost: 70,
     costStep: 48,
+    maxLevel: 8,
     iconUrl: '/assets/kenney-tanks/shotOrange.png',
   },
   critChance: {
@@ -30,6 +40,7 @@ export const STAT_UPGRADES: Record<
     description: '+2.5% critical hit chance',
     baseCost: 90,
     costStep: 62,
+    maxLevel: 10,
     iconUrl: '/assets/kenney-tanks/shotOrange.png',
   },
   critDamage: {
@@ -37,6 +48,7 @@ export const STAT_UPGRADES: Record<
     description: '+15% critical multiplier',
     baseCost: 100,
     costStep: 72,
+    maxLevel: 8,
     iconUrl: '/assets/kenney-tanks/shotOrange.png',
   },
   moveSpeed: {
@@ -44,6 +56,7 @@ export const STAT_UPGRADES: Record<
     description: '+10 base speed',
     baseCost: 85,
     costStep: 58,
+    maxLevel: 8,
     iconUrl: '/assets/kenney-tanks/tankBody_green.png',
   },
   pickupRadius: {
@@ -51,6 +64,7 @@ export const STAT_UPGRADES: Record<
     description: '+12 magnet radius',
     baseCost: 75,
     costStep: 50,
+    maxLevel: 8,
     iconUrl: '/assets/kenney-tanks/crateWood.png',
   },
   armorRegen: {
@@ -58,6 +72,7 @@ export const STAT_UPGRADES: Record<
     description: '+1 HP after each wave',
     baseCost: 120,
     costStep: 78,
+    maxLevel: 5,
     iconUrl: '/assets/kenney-tanks/barricadeMetal.png',
   },
   bossDamage: {
@@ -65,6 +80,7 @@ export const STAT_UPGRADES: Record<
     description: '+6% damage to bosses',
     baseCost: 130,
     costStep: 85,
+    maxLevel: 8,
     iconUrl: '/assets/kenney-tanks/tankBody_darkLarge.png',
   },
 }
@@ -86,4 +102,8 @@ export function createEmptyStatLevels(): Record<StatUpgradeType, number> {
 export function statUpgradeCost(type: StatUpgradeType, currentLevel: number) {
   const config = STAT_UPGRADES[type]
   return Math.round((config.baseCost + currentLevel * config.costStep) * (1 + currentLevel * 0.08))
+}
+
+export function clampStatLevel(type: StatUpgradeType, level: number) {
+  return Math.min(STAT_UPGRADES[type].maxLevel, Math.max(0, Math.floor(level)))
 }

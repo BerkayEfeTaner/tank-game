@@ -1,5 +1,5 @@
 import type { StatUpgradeType } from './types'
-import { createEmptyStatLevels } from './stats'
+import { clampStatLevel, createEmptyStatLevels } from './stats'
 import {
   CLASS_ORDER,
   TANK_CLASSES,
@@ -48,7 +48,7 @@ export function loadStatLevels(): Record<StatUpgradeType, number> {
       const type = key as StatUpgradeType
       const value = parsed[type]
       if (typeof value === 'number' && Number.isFinite(value)) {
-        levels[type] = Math.max(0, Math.floor(value))
+        levels[type] = clampStatLevel(type, value)
       }
     })
   } catch {
@@ -59,7 +59,12 @@ export function loadStatLevels(): Record<StatUpgradeType, number> {
 }
 
 export function saveStatLevels(levels: Record<StatUpgradeType, number>) {
-  window.localStorage.setItem(STAT_LEVELS_KEY, JSON.stringify(levels))
+  const clamped = createEmptyStatLevels()
+  Object.keys(clamped).forEach((key) => {
+    const type = key as StatUpgradeType
+    clamped[type] = clampStatLevel(type, levels[type] ?? 0)
+  })
+  window.localStorage.setItem(STAT_LEVELS_KEY, JSON.stringify(clamped))
 }
 
 export function loadOwnedClasses(): TankClassId[] {

@@ -106,14 +106,21 @@ export class ShopController {
       const type = key as StatUpgradeType
       const level = statLevels[type] ?? 0
       const cost = statUpgradeCost(type, level)
-      const canAfford = gold >= cost
+      const isMaxed = level >= config.maxLevel
+      const canAfford = !isMaxed && gold >= cost
       this.body!.appendChild(createCardButton({
         action: 'stat-buy', id: type,
         name: config.title,
-        description: `${config.description} - Lv ${level}`,
-        priceLabel: `${cost}g`, stateLabel: `Lv ${level}`,
-        iconUrl: config.iconUrl, disabled: !canAfford,
-        states: { affordable: canAfford, expensive: !canAfford, poor: !canAfford },
+        description: `${config.description} - Lv ${level}/${config.maxLevel}`,
+        priceLabel: isMaxed ? 'MAX' : `${cost}g`,
+        stateLabel: isMaxed ? 'Maxed' : `Lv ${level}`,
+        iconUrl: config.iconUrl, disabled: isMaxed || !canAfford,
+        states: {
+          affordable: canAfford,
+          expensive: !isMaxed && !canAfford,
+          poor: !isMaxed && !canAfford,
+          maxed: isMaxed,
+        },
       }))
     })
   }
