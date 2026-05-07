@@ -1,13 +1,13 @@
-import { UPGRADE_OPTIONS } from '../config'
-import type { GameEventBus, HudMod, HudSnapshot } from '../events'
+import { UPGRADE_OPTIONS } from '../../config'
+import type { GameEventBus, HudMod, HudSnapshot } from '../../events'
 import {
   UPGRADE_CAPS,
   UPGRADE_DESCRIPTIONS,
   UPGRADE_ICON_URL,
   rarityColor,
   rarityLabel,
-} from '../upgrade-meta'
-import type { UpgradeRarity, UpgradeType } from '../types'
+} from '../../upgrade-meta'
+import type { UpgradeRarity, UpgradeType } from '../../types'
 
 const TITLE_BY_TYPE: Map<UpgradeType, string> = new Map(
   UPGRADE_OPTIONS.map((option) => [option.type, option.title]),

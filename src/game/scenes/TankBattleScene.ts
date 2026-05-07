@@ -1539,7 +1539,7 @@ export class TankBattleScene extends Phaser.Scene {
       zone: this.mapTheme.name,
       gold: this.gold,
       mods,
-      state: this.state,
+      state: this.flow.state,
     }
     this.bus.emit('hud:snapshot', hudSnapshot)
 
