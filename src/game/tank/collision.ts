@@ -172,3 +172,32 @@ export function findClearSpawn(
   }
   return clampTankPosition(x, y, size)
 }
+
+export function findClearPosition(
+  x: number,
+  y: number,
+  size: number,
+  walls: Phaser.GameObjects.Rectangle[],
+): { x: number; y: number } {
+  const start = clampTankPosition(x, y, size)
+  if (spawnIsClear(start.x, start.y, size, walls)) {
+    return start
+  }
+  const stepSize = Math.max(32, Math.ceil(size * 0.5))
+  for (let ring = 1; ring <= 24; ring += 1) {
+    const radius = ring * stepSize
+    const samples = Math.max(8, ring * 8)
+    for (let i = 0; i < samples; i += 1) {
+      const angle = (i / samples) * Math.PI * 2
+      const cand = clampTankPosition(
+        x + Math.cos(angle) * radius,
+        y + Math.sin(angle) * radius,
+        size,
+      )
+      if (spawnIsClear(cand.x, cand.y, size, walls)) {
+        return cand
+      }
+    }
+  }
+  return { x: GAME_CONFIG.width / 2, y: GAME_CONFIG.height / 2 }
+}

@@ -45,7 +45,7 @@ import {
   wallAvoidance,
 } from '../systems/EnemyAI'
 import { bossTier, createWaveConfig, expandWaveQueue, isBossWave } from '../systems/WaveSystem'
-import { findClearSpawn, lineBlocked, moveTankAxis } from '../tank/collision'
+import { findClearPosition, findClearSpawn, lineBlocked, moveTankAxis } from '../tank/collision'
 import { createTank, syncTankVisuals, tankSizeForType } from '../tank/factory'
 import {
   loadActiveClass,
@@ -397,7 +397,8 @@ export class TankBattleScene extends Phaser.Scene {
     this.pickupSystem = new PickupSystem(this)
     this.mineSystem = new MineSystem(this)
     this.screenPanel = new ScreenPanelRenderer(this)
-    this.upgradeRenderer = new UpgradeRenderer(this)
+    this.upgradeRenderer = new UpgradeRenderer()
+    this.upgradeRenderer.setOnSelect((index) => this.applyUpgradeByIndex(index))
     this.bulletSystem = new BulletSystem(this, this.audio, (type) => this.upgradeLevel(type))
   }
 
@@ -414,6 +415,13 @@ export class TankBattleScene extends Phaser.Scene {
       wall.setDepth(1)
       return wall
     })
+    if (this.player) {
+      const safe = findClearPosition(this.player.x, this.player.y, this.player.size, this.walls)
+      if (safe.x !== this.player.x || safe.y !== this.player.y) {
+        this.player.x = safe.x
+        this.player.y = safe.y
+      }
+    }
   }
 
   private maybeRotateLayout() {

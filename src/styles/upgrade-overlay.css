@@ -1,0 +1,263 @@
+.upgrade-overlay[hidden] {
+  display: none;
+}
+
+.upgrade-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 28px;
+  padding: clamp(24px, 4vw, 56px);
+  pointer-events: auto;
+}
+
+.upgrade-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(116, 238, 181, 0.08), transparent 40%),
+    rgba(3, 6, 5, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: -1;
+  animation: upgrade-overlay-fade 240ms ease-out both;
+}
+
+@keyframes upgrade-overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.upgrade-overlay__head {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 18px 32px;
+  border: 1px solid rgba(116, 238, 181, 0.32);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, rgba(116, 238, 181, 0.1), transparent 70%),
+    rgba(8, 12, 11, 0.92);
+  box-shadow:
+    inset 3px 0 0 #74eeb5,
+    0 18px 40px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  min-width: min(640px, 90vw);
+  animation: upgrade-overlay-fade 280ms ease-out both;
+}
+
+.upgrade-overlay__pulse {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #74eeb5;
+  box-shadow: 0 0 12px rgba(116, 238, 181, 0.85);
+  transform: translateY(-50%);
+  animation: upgrade-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes upgrade-pulse {
+  0%, 100% { opacity: 0.65; transform: translateY(-50%) scale(1); }
+  50% { opacity: 1; transform: translateY(-50%) scale(1.4); }
+}
+
+.upgrade-overlay__head strong {
+  color: #fff8dd;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.upgrade-overlay__head span {
+  color: rgba(244, 239, 230, 0.62);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.upgrade-overlay__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(16px, 2vw, 32px);
+  width: min(1200px, 100%);
+  align-items: stretch;
+  justify-items: stretch;
+}
+
+.upg-card {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: #f4efe6;
+  transition: transform 180ms ease, filter 180ms ease;
+  animation: upg-card-pop 360ms cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+}
+
+.upg-card:nth-child(1) { animation-delay: 60ms; }
+.upg-card:nth-child(2) { animation-delay: 140ms; }
+.upg-card:nth-child(3) { animation-delay: 220ms; }
+
+@keyframes upg-card-pop {
+  from { opacity: 0; transform: translateY(24px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.upg-card:hover,
+.upg-card:focus-visible {
+  transform: translateY(-6px) scale(1.025);
+  outline: none;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.55));
+}
+
+.upg-card__frame {
+  position: absolute;
+  inset: 0;
+  background-image: var(--card-frame);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.upg-card__upper {
+  position: absolute;
+  inset: 12% 11% 36% 11%;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 1.5%;
+  pointer-events: none;
+  text-align: center;
+}
+
+.upg-card__lower {
+  position: absolute;
+  inset: 70% 11% 10% 11%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 4%;
+  pointer-events: none;
+  text-align: center;
+}
+
+.upg-card__rarity {
+  position: absolute;
+  top: 12.5%;
+  right: 19%;
+  transform: translateY(-50%);
+  color: var(--rarity-color, #f4efe6);
+  font-size: clamp(6px, 0.7vw, 9px);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 30%;
+  text-align: right;
+}
+
+.upg-card__icon {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  min-height: 0;
+}
+
+.upg-card__icon-mask {
+  width: 64%;
+  aspect-ratio: 1;
+  max-height: 100%;
+  background-color: var(--rarity-color, #f4efe6);
+  -webkit-mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-image: var(--icon);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  mask-mode: luminance;
+  -webkit-mask-mode: luminance;
+  filter: drop-shadow(0 0 14px var(--rarity-glow, rgba(116, 238, 181, 0.45)));
+}
+
+.upg-card__category {
+  color: var(--rarity-color, #f4efe6);
+  font-size: clamp(8px, 0.85vw, 11px);
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.upg-card__title {
+  margin: 0;
+  color: #fff8dd;
+  font-size: clamp(13px, 1.4vw, 19px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upg-card__desc {
+  margin: 0;
+  color: rgba(244, 239, 230, 0.72);
+  font-size: clamp(9px, 0.85vw, 12px);
+  font-weight: 500;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-inline: 4%;
+}
+
+.upg-card__chip {
+  align-self: end;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 1px var(--rarity-color, rgba(116, 238, 181, 0.6));
+}
+
+.upg-card__chip span {
+  color: var(--rarity-color, #74eeb5);
+  font-size: clamp(8px, 0.8vw, 11px);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.upg-card__chip strong {
+  color: #fff8dd;
+  font-size: clamp(8px, 0.8vw, 11px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.upg-card--common { --rarity-color: #e6e8eb; --rarity-glow: rgba(230, 232, 235, 0.45); }
+.upg-card--uncommon { --rarity-color: #6fdf7d; --rarity-glow: rgba(111, 223, 125, 0.55); }
+.upg-card--rare { --rarity-color: #6fb3ff; --rarity-glow: rgba(111, 179, 255, 0.55); }
+.upg-card--epic { --rarity-color: #b48cff; --rarity-glow: rgba(180, 140, 255, 0.55); }
+.upg-card--legendary { --rarity-color: #f6d365; --rarity-glow: rgba(246, 211, 101, 0.6); }
+.upg-card--mythic { --rarity-color: #ff5d5d; --rarity-glow: rgba(255, 93, 93, 0.6); }
